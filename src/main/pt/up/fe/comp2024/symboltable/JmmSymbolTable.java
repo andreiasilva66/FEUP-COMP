@@ -47,7 +47,7 @@ public class JmmSymbolTable implements SymbolTable {
 
     @Override
     public List<Symbol> getFields() {
-        throw new NotImplementedException();
+        return Collections.emptyList();
     }
 
     @Override
