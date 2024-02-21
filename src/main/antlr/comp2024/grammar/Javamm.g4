@@ -27,24 +27,42 @@ NEW : 'new' ;
 TRUE : 'true' ;
 FALSE : 'false' ;
 
+IMPORT : 'import' ;
+EXTENDS : 'extends' ;
 CLASS : 'class' ;
 INT : 'int' ;
+BOOLEAN : 'boolean' ;
+STATIC : 'static' ;
+VOID : 'void' ;
+MAIN : 'main' ;
+IF : 'if' ;
+ELSE : 'else' ;
+WHILE : 'while' ;
+DOT : '.' ;
+COMMA : ',' ;
 PUBLIC : 'public' ;
 RETURN : 'return' ;
 
 INTEGER : '0' | ([1-9][0-9]*);
-ID : [a-zA-Z]+ ;
+ID : [a-zA-Z_$]([a-zA-Z_0-9$])* ;
+STRING_ARRAY : 'String' '[' ']' ;
 
 WS : [ \t\n\r\f]+ -> skip ;
 
 program
-    : classDecl EOF
+    : stmt + EOF
+    | (importDecl)* classDecl EOF
+    ;
+
+importDecl
+    : IMPORT ID ( DOT ID )* SEMI
     ;
 
 classDecl
     : CLASS name=ID
+        ( EXTENDS ID )?
         LCURLY
-        methodDecl*
+        ( varDecl )* ( methodDecl )*
         RCURLY
     ;
 
@@ -52,32 +70,31 @@ varDecl
     : type name=ID SEMI
     ;
 
-type
-    : name= INTEGER ;
-
 methodDecl locals[boolean isPublic=false]
     : (PUBLIC {$isPublic=true;})?
         type name=ID
-        LPAREN param RPAREN
-        LCURLY varDecl* stmt* RCURLY
+        LPAREN ( type name=ID (COMMA type name=ID)* )? RPAREN
+        LCURLY ( varDecl )* ( stmt )* RETURN expr SEMI RCURLY
+    | (PUBLIC {$isPublic=true;})?
+        STATIC VOID MAIN LPAREN STRING_ARRAY ID RPAREN
+        LCURLY ( varDecl )* ( stmt )* RCURLY
     ;
 
-param
-    : type name=ID
-    | type name='int''['']'
-    | type name='int''...'
-    | type name='boolean'
-    | type name='int'
+type
+    : name= INT LRECT RRECT
+    | name= INT'...'
+    | name= BOOLEAN
+    | name= INT
+    | name=ID
     ;
 
 stmt
-    : expr EQUALS expr SEMI #AssignStmt //
-    | LCURLY (stmt)* RCURLY #CurlyStmt
-    | 'if''('expr')'stmt'else'stmt #IfElseStmt
-    | 'while''('expr')'stmt #WhileStmt
-    | expr';' #SemiColonStmt
-    | ID'='expr';' #IDAssignStmt
-    | ID'['expr']''='expr ';' #IDCurlyAssignStmt
+    : LCURLY (stmt)* RCURLY #CurlyStmt
+    | IF LPAREN expr RPAREN stmt ELSE stmt #IfElseStmt
+    | WHILE LPAREN expr RPAREN stmt #WhileStmt
+    | expr SEMI #SemiColonStmt
+    | ID EQUALS expr SEMI #IDAssignStmt
+    | ID LRECT expr RRECT EQUALS expr SEMI #IDCurlyAssignStmt
     | RETURN expr SEMI #ReturnStmt
     ;
 
@@ -86,19 +103,17 @@ expr
     | expr op= (MUL | DIV) expr #BinaryExpr //
     | expr op= (ADD | SUB) expr #BinaryExpr //
     | expr LRECT expr RRECT #BinaryExpr
-    | value=INTEGER #IntegerLiteral //
-    | name=ID #VarRefExpr //
-    | LPAREN expr RPAREN #ParenthesisExpr
-    | LCURLY expr RCURLY #ParentCurlyExpr
-    | expr '.' ID LPAREN ( expr ( ',' expr )* )? RPAREN #GetMethod
-    | LRECT (expr ( ',' expr)* )? RRECT #List
+    | expr DOT LENGTH #GetLength
+    | expr DOT ID LPAREN ( expr ( COMMA expr )* )? RPAREN #GetMethod
     | NEW INT LRECT expr RRECT #NewInt //
-    | NEW ID LRECT RRECT #NewID //
-    | expr '.' LENGTH #GetLength //
-    | '!' expr #NotExpr //
+    | NEW ID LPAREN RPAREN #NewID
+    | NOT expr #NotExpr
+    | LPAREN expr RPAREN #ParenthesisExpr
+    | LRECT (expr ( COMMA expr)* )? RRECT #List
     | INTEGER #Integer
-    | FALSE #FalseExpr
     | TRUE #TrueExpr
+    | FALSE #FalseExpr
+    | ID #IDExpr
     | THIS #ThisExpr
     ;
 
