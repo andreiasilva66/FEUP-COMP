@@ -99,7 +99,8 @@ stmt
     ;
 
 expr
-    : expr op= (LESS | AND) expr #BinaryExpr //
+    : NOT expr #NotExpr
+    | expr op= (LESS | AND) expr #BinaryExpr //
     | expr op= (MUL | DIV) expr #BinaryExpr //
     | expr op= (ADD | SUB) expr #BinaryExpr //
     | expr LRECT expr RRECT #BinaryExpr
@@ -107,7 +108,6 @@ expr
     | expr DOT ID LPAREN ( expr ( COMMA expr )* )? RPAREN #GetMethod
     | NEW INT LRECT expr RRECT #NewInt //
     | NEW ID LPAREN RPAREN #NewID
-    | NOT expr #NotExpr
     | LPAREN expr RPAREN #ParenthesisExpr
     | LRECT (expr ( COMMA expr)* )? RRECT #List
     | INTEGER #Integer

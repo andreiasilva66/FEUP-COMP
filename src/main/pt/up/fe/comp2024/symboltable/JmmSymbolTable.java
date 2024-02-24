@@ -12,18 +12,27 @@ import java.util.Map;
 
 public class JmmSymbolTable implements SymbolTable {
 
+    private final List<String> importedClasses;
     private final String className;
+    private final String superClassName;
+    private final List<Symbol> fields;
     private final List<String> methods;
     private final Map<String, Type> returnTypes;
     private final Map<String, List<Symbol>> params;
     private final Map<String, List<Symbol>> locals;
 
-    public JmmSymbolTable(String className,
-                          List<String> methods,
-                          Map<String, Type> returnTypes,
-                          Map<String, List<Symbol>> params,
-                          Map<String, List<Symbol>> locals) {
+    public JmmSymbolTable(List<String> importedClasses,
+                          String className,
+                          String superClassName,
+                          List<Symbol> fields,
+                          List<String> methods, //
+                          Map<String, Type> returnTypes, //
+                          Map<String, List<Symbol>> params, //
+                          Map<String, List<Symbol>> locals) { //
+        this.importedClasses = importedClasses;
         this.className = className;
+        this.superClassName = superClassName;
+        this.fields = fields;
         this.methods = methods;
         this.returnTypes = returnTypes;
         this.params = params;
@@ -32,7 +41,7 @@ public class JmmSymbolTable implements SymbolTable {
 
     @Override
     public List<String> getImports() {
-        throw new NotImplementedException();
+        return Collections.unmodifiableList(importedClasses);
     }
 
     @Override
@@ -42,12 +51,12 @@ public class JmmSymbolTable implements SymbolTable {
 
     @Override
     public String getSuper() {
-        throw new NotImplementedException();
+        return superClassName;
     }
 
     @Override
     public List<Symbol> getFields() {
-        return Collections.emptyList();
+        return Collections.unmodifiableList(fields);
         // throw new NotImplementedException();
     }
 
