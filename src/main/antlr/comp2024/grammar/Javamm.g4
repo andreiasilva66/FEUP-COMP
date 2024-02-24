@@ -10,8 +10,15 @@ LCURLY : '{' ;
 RCURLY : '}' ;
 LPAREN : '(' ;
 RPAREN : ')' ;
+LRECT : '[' ;
+RRECT : ']' ;
 MUL : '*' ;
+DIV : '/' ;
+AND : '&&' ;
+LESS : '<' ;
 ADD : '+' ;
+SUB : '-' ;
+LENGTH : 'length' ;
 
 CLASS : 'class' ;
 INT : 'int' ;
@@ -59,10 +66,13 @@ stmt
     ;
 
 expr
-    : expr op= MUL expr #BinaryExpr //
-    | expr op= ADD expr #BinaryExpr //
+    : expr op= (LESS | AND) expr #BinaryExpr //
+    | expr op= (MUL | DIV) expr #BinaryExpr //
+    | expr op= (ADD | SUB) expr #BinaryExpr //
+    | expr LRECT expr RRECT #BinaryExpr
     | value=INTEGER #IntegerLiteral //
     | name=ID #VarRefExpr //
+    | expr '.' LENGTH #GetLength
     ;
 
 
