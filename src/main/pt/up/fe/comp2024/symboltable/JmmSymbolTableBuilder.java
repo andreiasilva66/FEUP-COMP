@@ -17,27 +17,39 @@ public class JmmSymbolTableBuilder {
 
     public static JmmSymbolTable build(JmmNode root) {
 
-        var classDecl = root.getJmmChild(0);
+        var classDecl = root.getChildren().get(root.getChildren().size() - 1);
+
         SpecsCheck.checkArgument(Kind.CLASS_DECL.check(classDecl), () -> "Expected a class declaration: " + classDecl);
 
         String className = classDecl.get("name");
+        String superClass;
 
-        List<String> importedClasses = Collections.emptyList(); //buildImportedCLasses(classDecl);
-        String superClass = classDecl.getParent().get("name");
+        if(classDecl.hasAttribute("superclassname")){
+            superClass = classDecl.get("superclassname");
+        }
+        else {
+            superClass = null;
+        }
+
         List<Symbol> fields = Collections.emptyList(); //buildFields(classDecl);
         var methods = buildMethods(classDecl);
+        var imports = buildImports(root);
         var returnTypes = buildReturnTypes(classDecl);
         var params = buildParams(classDecl);
         var locals = buildLocals(classDecl);
 
-        return new JmmSymbolTable(importedClasses, className, superClass, fields, methods, returnTypes, params, locals);
+        return new JmmSymbolTable(className, superClass, fields, methods, imports, returnTypes, params, locals);
     }
 
-    /*private static List<String> buildImportedCLasses(JmmNode classDecl) {
+    private static List<String> buildImports(JmmNode classDecl) {
+        return classDecl.getChildren(Kind.IMPORT_DECL).stream()
+                        .map(importDecl -> importDecl.get("value"))
+                        .toList();
+    }
 
-        return classDecl.getChildren().stream()
-                .map(method -> method.get("name"))
-                .toList();
+    /*private static List<Symbol> buildFields(JmmNode classDecl) {
+
+            return
     }*/
 
     private static Map<String, Type> buildReturnTypes(JmmNode classDecl) {

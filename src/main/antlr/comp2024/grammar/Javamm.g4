@@ -55,12 +55,12 @@ program
     ;
 
 importDecl
-    : IMPORT ID ( DOT ID )* SEMI
+    : IMPORT value+=ID ( DOT value+=ID )* SEMI
     ;
 
 classDecl
     : CLASS name=ID
-        ( EXTENDS ID )?
+        ( EXTENDS superclassname=ID )?
         LCURLY
         ( varDecl )* ( methodDecl )*
         RCURLY
