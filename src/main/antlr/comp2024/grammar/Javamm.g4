@@ -99,22 +99,23 @@ stmt
     ;
 
 expr
-    : NOT expr #NotExpr
-    | expr op= (LESS | AND) expr #BinaryExpr //
-    | expr op= (MUL | DIV) expr #BinaryExpr //
-    | expr op= (ADD | SUB) expr #BinaryExpr //
+    : LPAREN expr RPAREN #ParenthesisExpr
     | expr LRECT expr RRECT #BinaryExpr
-    | expr DOT LENGTH #GetLength
-    | expr DOT ID LPAREN ( expr ( COMMA expr )* )? RPAREN #GetMethod
+    | NOT expr #NotExpr
     | NEW INT LRECT expr RRECT #NewInt //
     | NEW ID LPAREN RPAREN #NewID
-    | LPAREN expr RPAREN #ParenthesisExpr
-    | LRECT (expr ( COMMA expr)* )? RRECT #List
+    | expr op= (MUL | DIV) expr #BinaryExpr //
+    | expr op= (ADD | SUB) expr #BinaryExpr //
+    | expr op= LESS expr #BinaryExpr //
+    | expr op= AND expr #BinaryExpr
     | INTEGER #Integer
     | TRUE #TrueExpr
     | FALSE #FalseExpr
     | ID #IDExpr
     | THIS #ThisExpr
+    | expr DOT LENGTH #GetLength
+    | expr DOT ID LPAREN ( expr ( COMMA expr )* )? RPAREN #GetMethod
+    | LRECT (expr ( COMMA expr)* )? RRECT #List
     ;
 
 
