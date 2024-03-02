@@ -7,9 +7,24 @@ import pt.up.fe.comp.jmm.ast.JmmNode;
 public class TypeUtils {
 
     private static final String INT_TYPE_NAME = "int";
+    private static final String BOOLEAN_TYPE_NAME = "boolean";
+    private static final String OBJECT_TYPE_NAME = "Object";
+    private static final String PARAMETERS_TYPE_NAME = "Parameters";
 
     public static String getIntTypeName() {
         return INT_TYPE_NAME;
+    }
+
+    public static String getBooleanTypeName() {
+        return BOOLEAN_TYPE_NAME;
+    }
+
+    public static String getObjectType() {
+        return OBJECT_TYPE_NAME;
+    }
+
+    public static String getParametersType() {
+        return PARAMETERS_TYPE_NAME;
     }
 
     /**
@@ -28,6 +43,7 @@ public class TypeUtils {
             case BINARY_EXPR -> getBinExprType(expr);
             case VAR_REF_EXPR -> getVarExprType(expr, table);
             case INTEGER_LITERAL -> new Type(INT_TYPE_NAME, false);
+            case BOOLEAN -> new Type("boolean", false);
             default -> throw new UnsupportedOperationException("Can't compute type for expression kind '" + kind + "'");
         };
 

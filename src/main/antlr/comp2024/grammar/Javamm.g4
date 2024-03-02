@@ -76,7 +76,7 @@ methodDecl locals[boolean isPublic=false]
         LPAREN ( type name=ID (COMMA type name=ID)* )? RPAREN
         LCURLY ( varDecl )* ( stmt )* RETURN expr SEMI RCURLY
     | (PUBLIC {$isPublic=true;})?
-        STATIC VOID MAIN LPAREN STRING_ARRAY ID RPAREN
+        STATIC VOID name=MAIN LPAREN STRING_ARRAY ID RPAREN
         LCURLY ( varDecl )* ( stmt )* RCURLY
     ;
 
@@ -109,8 +109,7 @@ expr
     | expr op= LESS expr #BinaryExpr //
     | expr op= AND expr #BinaryExpr
     | INTEGER #Integer
-    | TRUE #TrueExpr
-    | FALSE #FalseExpr
+    | (TRUE | FALSE) #BOOLEAN
     | ID #IDExpr
     | THIS #ThisExpr
     | expr DOT LENGTH #GetLength

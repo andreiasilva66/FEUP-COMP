@@ -22,20 +22,17 @@ public class JmmSymbolTableBuilder {
         SpecsCheck.checkArgument(Kind.CLASS_DECL.check(classDecl), () -> "Expected a class declaration: " + classDecl);
 
         String className = classDecl.get("name");
-        String superClass;
+        String superClass = null;
 
         if(classDecl.hasAttribute("superclassname")){
             superClass = classDecl.get("superclassname");
         }
-        else {
-            superClass = null;
-        }
 
-        List<Symbol> fields = Collections.emptyList(); //buildFields(classDecl);
+        List<Symbol> fields = buildFields(classDecl);
         var methods = buildMethods(classDecl);
         var imports = buildImports(root);
         var returnTypes = buildReturnTypes(classDecl);
-        var params = buildParams(classDecl);
+        Map<String, List<Symbol>> params = Collections.EMPTY_MAP; //buildParams(classDecl);
         var locals = buildLocals(classDecl);
 
         return new JmmSymbolTable(className, superClass, fields, methods, imports, returnTypes, params, locals);
@@ -47,10 +44,34 @@ public class JmmSymbolTableBuilder {
                         .toList();
     }
 
-    /*private static List<Symbol> buildFields(JmmNode classDecl) {
+    private static List<Symbol> buildFields(JmmNode classDecl) {
 
-            return
-    }*/
+        return classDecl.getChildren(VAR_DECL).stream()
+                .map(varDecl -> {
+
+                    var type = varDecl.getChild(0);
+
+                    String typeName = type.get("name");
+
+                    return new Symbol(new Type(typeName, false), varDecl.get("name"));
+                })
+                .toList();
+    }
+
+    private static Type nameToType(String name){
+        switch(name){
+            case "int":
+                return new Type(TypeUtils.getIntTypeName(), false);
+            case "boolean":
+                return new Type(TypeUtils.getBooleanTypeName(), false);
+            case "Object":
+                return new Type(TypeUtils.getObjectType(), false);
+            case "Parameters":
+                return new Type(TypeUtils.getParametersType(), false);
+            default:
+                return new Type(name, true);
+        }
+    }
 
     private static Map<String, Type> buildReturnTypes(JmmNode classDecl) {
         // TODO: Simple implementation that needs to be expanded
@@ -75,6 +96,7 @@ public class JmmSymbolTableBuilder {
 
         return map;
     }
+
 
     private static Map<String, List<Symbol>> buildLocals(JmmNode classDecl) {
         // TODO: Simple implementation that needs to be expanded
