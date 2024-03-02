@@ -32,7 +32,7 @@ public class JmmSymbolTableBuilder {
         var methods = buildMethods(classDecl);
         var imports = buildImports(root);
         var returnTypes = buildReturnTypes(classDecl);
-        Map<String, List<Symbol>> params = Collections.EMPTY_MAP; //buildParams(classDecl);
+        Map<String, List<Symbol>> params = buildParams(classDecl);
         var locals = buildLocals(classDecl);
 
         return new JmmSymbolTable(className, superClass, fields, methods, imports, returnTypes, params, locals);
@@ -51,35 +51,30 @@ public class JmmSymbolTableBuilder {
 
                     var type = varDecl.getChild(0);
 
-                    String typeName = type.get("name");
-
-                    return new Symbol(new Type(typeName, false), varDecl.get("name"));
+                    return new Symbol(new Type(type.get("name"), false), varDecl.get("name"));
                 })
                 .toList();
-    }
-
-    private static Type nameToType(String name){
-        switch(name){
-            case "int":
-                return new Type(TypeUtils.getIntTypeName(), false);
-            case "boolean":
-                return new Type(TypeUtils.getBooleanTypeName(), false);
-            case "Object":
-                return new Type(TypeUtils.getObjectType(), false);
-            case "Parameters":
-                return new Type(TypeUtils.getParametersType(), false);
-            default:
-                return new Type(name, true);
-        }
     }
 
     private static Map<String, Type> buildReturnTypes(JmmNode classDecl) {
         // TODO: Simple implementation that needs to be expanded
 
+        System.out.println(classDecl.toTree());
+
         Map<String, Type> map = new HashMap<>();
 
         classDecl.getChildren(METHOD_DECL).stream()
-                .forEach(method -> map.put(method.get("name"), new Type(TypeUtils.getIntTypeName(), false)));
+                .forEach(method -> {
+                    if(method.getChildren().size() > 0){
+                        if(method.getChild(0).get("name") == "int[]"){
+                            map.put(method.get("name"), new Type(method.getChild(0).get("name"), true));
+                        }
+                        else{
+                            map.put(method.get("name"), new Type(method.getChild(0).get("name"), false));
+                        }
+                    }
+                }
+                );
 
         return map;
     }
@@ -92,7 +87,13 @@ public class JmmSymbolTableBuilder {
         var intType = new Type(TypeUtils.getIntTypeName(), false);
 
         classDecl.getChildren(METHOD_DECL).stream()
-                .forEach(method -> map.put(method.get("name"), Arrays.asList(new Symbol(intType, method.getJmmChild(1).get("name")))));
+                .forEach(method -> map.put(method.get("name"), method.getChildren(VAR_DECL).stream()
+                                .map(varDecl -> {
+
+                                    var type = varDecl.getChild(0);
+
+                                    return new Symbol(new Type(type.get("name"), false), varDecl.get("name"));
+                                }).toList()));
 
         return map;
     }
