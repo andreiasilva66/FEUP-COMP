@@ -45,7 +45,8 @@ RETURN : 'return' ;
 
 INTEGER : '0' | ([1-9][0-9]*);
 ID : [a-zA-Z_$]([a-zA-Z_0-9$])* ;
-STRING_ARRAY : 'String' '[' ']' ;
+STRING_ARRAY : 'String[]' ;
+INT_ARRAY : 'int[]' ;
 
 WS : [ \t\n\r\f]+ -> skip ;
 
@@ -73,20 +74,27 @@ varDecl
 
 methodDecl locals[boolean isPublic=false]
     : (PUBLIC {$isPublic=true;})?
+        (STATIC)?
         type name=ID
-        LPAREN ( type name=ID (COMMA type name=ID)* )? RPAREN
+        LPAREN ( parameter (COMMA parameter)* )? RPAREN
         LCURLY ( varDecl )* ( stmt )* RETURN expr SEMI RCURLY
     | (PUBLIC {$isPublic=true;})?
         STATIC VOID name=MAIN LPAREN STRING_ARRAY ID RPAREN
         LCURLY ( varDecl )* ( stmt )* RCURLY
     ;
 
+parameter
+    : type name=ID
+    ;
+
 type
-    : name= INT LRECT RRECT
+    : name= INT_ARRAY
+    | name = STRING_ARRAY
     | name= INT'...'
     | name= BOOLEAN
     | name= INT
     | name=ID
+    | name = VOID
     ;
 
 stmt
