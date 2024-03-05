@@ -77,11 +77,11 @@ returnType
 
 methodDecl locals[boolean isPublic=false]
     : (PUBLIC {$isPublic=true;})?
-        returnType methodName=ID
+        returnType name=ID
         LPAREN ( type argName=ID (COMMA type argName=ID)* )? RPAREN
         LCURLY ( varDecl )* ( stmt )* RETURN expr SEMI RCURLY
     | (PUBLIC {$isPublic=true;})?
-        STATIC VOID MAIN LPAREN STRING_ARRAY argName=ID RPAREN
+        STATIC VOID name=MAIN LPAREN STRING_ARRAY argName=ID RPAREN
         LCURLY ( varDecl )* ( stmt )* RCURLY
     ;
 

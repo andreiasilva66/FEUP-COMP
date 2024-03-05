@@ -47,6 +47,16 @@ public class JmmSymbolTableBuilder {
 
         List<Symbol> fields = new ArrayList<>();
 
+        var child = classDecl.getChildren(METHOD_DECL);
+        for (var method : child) {
+            if (!method.getChildren().isEmpty()) {
+                var type = method.getChild(0);
+                for (var param : method.getChildren(TYPE)) {
+                    fields.add(new Symbol(new Type(param.get("value"), false), type.getChild(0).get("value")));
+                }
+            }
+        }
+
         return fields;
     }
 
@@ -58,7 +68,7 @@ public class JmmSymbolTableBuilder {
         for (var method : child) {
             if (!method.getChildren().isEmpty()) {
                 var type = method.getChild(0);
-                map.put(method.get("methodName"), new Type(type.getChild(0).get("value"), false));
+                map.put(method.get("name"), new Type(type.getChild(0).get("value"), false));
             }
             else {
                 map.put("main", new Type("static void", false));
@@ -92,18 +102,26 @@ public class JmmSymbolTableBuilder {
 
     private static Map<String, List<Symbol>> buildLocals(JmmNode classDecl) {
         Map<String, List<Symbol>> map = new HashMap<>();
+
+        var child = classDecl.getChildren(METHOD_DECL);
+        for (var method : child) {
+            if (!method.getChildren().isEmpty()) {
+                var type = method.getChild(0);
+                var locals = new ArrayList<Symbol>();
+                for (var local : method.getChildren(Kind.VAR_DECL)) {
+                    locals.add(new Symbol(new Type(local.getChild(0).get("value"), false), method.get("name")));
+                }
+                map.put(method.get("name"), locals);
+            }
+        }
+
         return map;
     }
 
     private static List<String> buildMethods(JmmNode classDecl) {
         List<String> methods = new ArrayList<>();
         for (var child : classDecl.getChildren(METHOD_DECL)) {
-            if (child.hasAttribute("methodName")) {
-                methods.add(child.get("methodName"));
-            }
-            else{
-                methods.add("main");
-            }
+            methods.add(child.get("name"));
         }
         return methods;
     }
@@ -111,6 +129,7 @@ public class JmmSymbolTableBuilder {
 
     private static List<Symbol> getLocalsList(JmmNode methodDecl) {
         List<Symbol> locals = new ArrayList<>();
+
         return locals;
     }
 
