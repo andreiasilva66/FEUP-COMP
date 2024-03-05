@@ -60,8 +60,8 @@ importDecl
     ;
 
 classDecl
-    : CLASS name=ID
-        ( EXTENDS superclassname=ID )?
+    : CLASS className=ID
+        ( EXTENDS superClassName=ID )?
         LCURLY
         ( varDecl )* ( methodDecl )*
         RCURLY
@@ -69,32 +69,25 @@ classDecl
 
 varDecl
     : type name=ID SEMI
-    | type name= ID
     ;
 
 methodDecl locals[boolean isPublic=false]
     : (PUBLIC {$isPublic=true;})?
-        (STATIC)?
-        type name=ID
-        LPAREN ( parameter (COMMA parameter)* )? RPAREN
+        type methodName=ID
+        LPAREN ( type argName=ID (COMMA type argName=ID)* )? RPAREN
         LCURLY ( varDecl )* ( stmt )* RETURN expr SEMI RCURLY
-    | (PUBLIC {$isPublic=true;})
-        STATIC VOID name=MAIN LPAREN STRING_ARRAY ID RPAREN
+    | (PUBLIC {$isPublic=true;})?
+        STATIC VOID MAIN LPAREN STRING_ARRAY argName=ID RPAREN
         LCURLY ( varDecl )* ( stmt )* RCURLY
     ;
 
-parameter
-    : type name=ID
-    ;
-
 type
-    : name= INT_ARRAY
-    | name = STRING_ARRAY
-    | name= INT'...'
-    | name= BOOLEAN
-    | name= INT
-    | name=ID
-    | name = VOID
+    : value=INT_ARRAY
+    | value=STRING_ARRAY
+    | value= INT'...'
+    | value=BOOLEAN
+    | value=INT
+    | value=ID
     ;
 
 stmt
@@ -102,8 +95,8 @@ stmt
     | IF LPAREN expr RPAREN stmt ELSE stmt #IfElseStmt
     | WHILE LPAREN expr RPAREN stmt #WhileStmt
     | expr SEMI #SemiColonStmt
-    | ID EQUALS expr SEMI #IDAssignStmt
-    | ID LRECT expr RRECT EQUALS expr SEMI #IDCurlyAssignStmt
+    | var=ID EQUALS expr SEMI #IDAssignStmt
+    | var=ID LRECT expr RRECT EQUALS expr SEMI #IDCurlyAssignStmt
     | RETURN expr SEMI #ReturnStmt
     ;
 
@@ -118,11 +111,11 @@ expr
     | expr op= LESS expr #BinaryExpr //
     | expr op= AND expr #BinaryExpr
     | INTEGER #Integer
-    | (TRUE | FALSE) #BOOLEAN
-    | ID #IDExpr
+    | value=(TRUE | FALSE) #BOOLEAN
+    | value=ID #IDExpr
     | THIS #ThisExpr
     | expr DOT LENGTH #GetLength
-    | expr DOT ID LPAREN ( expr ( COMMA expr )* )? RPAREN #GetMethod
+    | expr DOT value=ID LPAREN ( expr ( COMMA expr )* )? RPAREN #GetMethod
     | LRECT (expr ( COMMA expr)* )? RRECT #List
     ;
 
