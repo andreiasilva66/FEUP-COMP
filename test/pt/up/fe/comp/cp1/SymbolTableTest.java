@@ -112,8 +112,7 @@ public class SymbolTableTest {
         assertEquals("Method with return type int", 1, checkInt);
         assertEquals("Method with return type boolean", 1, checkBool);
         assertEquals("Method with return type object", 1, checkObj);
-        assertEquals(6, 1, checkAll);
-
+        assertEquals("Method with three arguments", 1, checkAll);
 
     }
 

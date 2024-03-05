@@ -68,6 +68,7 @@ classDecl
 
 varDecl
     : type name=ID SEMI
+    | type name=ID LRECT RRECT SEMI
     ;
 
 returnType

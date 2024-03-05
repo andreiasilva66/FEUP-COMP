@@ -72,7 +72,12 @@ public class JmmSymbolTableBuilder {
         var child = classDecl.getChildren(METHOD_DECL);
         for (var method : child) {
                 var type = method.getChild(0);
-                map.put(method.get("name"), new Type(type.getChild(0).get("value"), false));
+                if (type.getChild(0).get("value").equals("int[]")) {
+                    map.put(method.get("name"), new Type("int", true));
+                }
+                else {
+                    map.put(method.get("name"), new Type(type.getChild(0).get("value"), false));
+                }
         }
 
         return map;
@@ -81,17 +86,16 @@ public class JmmSymbolTableBuilder {
     private static Map<String, List<Symbol>> buildParams(JmmNode classDecl) {
 
         Map<String, List<Symbol>> map = new HashMap<>();
-        List<Symbol> params = new ArrayList<>();
 
         var child = classDecl.getChildren(METHOD_DECL);
         for (var method : child) {
+            List<Symbol> params = new ArrayList<>();
             if (!method.getChildren().isEmpty()) {
                 var type = method.getChild(0);
                 for (var param : method.getChildren(TYPE)) {
                     params.add(new Symbol(new Type(param.get("value"), false), type.getChild(0).get("value")));
                     map.put(method.get("name"), params);
                 }
-                var returnType = type.getChild(0).get("value");
                 map.computeIfAbsent(method.get("name"), k -> new ArrayList<>());
             }
         }
