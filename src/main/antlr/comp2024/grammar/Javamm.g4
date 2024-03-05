@@ -71,9 +71,13 @@ varDecl
     : type name=ID SEMI
     ;
 
+returnType
+    : type
+    ;
+
 methodDecl locals[boolean isPublic=false]
     : (PUBLIC {$isPublic=true;})?
-        type methodName=ID
+        returnType methodName=ID
         LPAREN ( type argName=ID (COMMA type argName=ID)* )? RPAREN
         LCURLY ( varDecl )* ( stmt )* RETURN expr SEMI RCURLY
     | (PUBLIC {$isPublic=true;})?
@@ -84,7 +88,7 @@ methodDecl locals[boolean isPublic=false]
 type
     : value=INT_ARRAY
     | value=STRING_ARRAY
-    | value= INT'...'
+    | value=INT'...'
     | value=BOOLEAN
     | value=INT
     | value=ID

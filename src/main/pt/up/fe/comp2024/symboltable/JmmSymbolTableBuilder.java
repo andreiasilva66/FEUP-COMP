@@ -9,8 +9,7 @@ import pt.up.fe.specs.util.SpecsCheck;
 
 import java.util.*;
 
-import static pt.up.fe.comp2024.ast.Kind.METHOD_DECL;
-import static pt.up.fe.comp2024.ast.Kind.VAR_DECL;
+import static pt.up.fe.comp2024.ast.Kind.*;
 
 public class JmmSymbolTableBuilder {
 
@@ -46,14 +45,9 @@ public class JmmSymbolTableBuilder {
 
     private static List<Symbol> buildFields(JmmNode classDecl) {
 
-        return classDecl.getChildren(VAR_DECL).stream()
-                .map(VarDecl -> {
+        List<Symbol> fields = new ArrayList<>();
 
-                    var type = VarDecl.getChild(0);
-
-                    return new Symbol(new Type(type.get("value"), false), VarDecl.get("name"));
-                })
-                .toList();
+        return fields;
     }
 
     private static Map<String, Type> buildReturnTypes(JmmNode classDecl) {
@@ -62,9 +56,9 @@ public class JmmSymbolTableBuilder {
 
         var child = classDecl.getChildren(METHOD_DECL);
         for (var method : child) {
-            if (method.getChildren().size() != 0) {
+            if (!method.getChildren().isEmpty()) {
                 var type = method.getChild(0);
-                map.put(method.get("methodName"), new Type(type.get("value"), false));
+                map.put(method.get("methodName"), new Type(type.getChild(0).get("value"), false));
             }
             else {
                 map.put("main", new Type("static void", false));
@@ -77,6 +71,20 @@ public class JmmSymbolTableBuilder {
     private static Map<String, List<Symbol>> buildParams(JmmNode classDecl) {
 
         Map<String, List<Symbol>> map = new HashMap<>();
+        List<Symbol> params = new ArrayList<>();
+
+        var child = classDecl.getChildren(METHOD_DECL);
+        for (var method : child) {
+            if (!method.getChildren().isEmpty()) {
+                var type = method.getChild(0);
+                for (var param : method.getChildren(TYPE)) {
+                    params.add(new Symbol(new Type(param.get("value"), false), type.getChild(0).get("value")));
+                    map.put(type.getChild(0).get("value"), params);
+                }
+                var returnType = type.getChild(0).get("value");
+                map.computeIfAbsent(returnType, k -> new ArrayList<>());
+            }
+        }
 
         return map;
     }
