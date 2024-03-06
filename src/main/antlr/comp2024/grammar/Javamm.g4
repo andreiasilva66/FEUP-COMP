@@ -32,7 +32,7 @@ EXTENDS : 'extends' ;
 CLASS : 'class' ;
 INT : 'int' ;
 BOOLEAN : 'boolean' ;
-STATICVOID : 'static void' ;
+VOID : 'void' ;
 MAIN : 'main' ;
 IF : 'if' ;
 ELSE : 'else' ;
@@ -84,7 +84,7 @@ methodDecl locals[boolean isPublic=false]
         LPAREN ( type argName=ID (COMMA type argName=ID)* )? RPAREN
         LCURLY ( varDecl )* ( stmt )* RETURN expr SEMI RCURLY
     | (PUBLIC {$isPublic=true;})?
-        returnType name=MAIN LPAREN type argName=ID RPAREN
+        'static' returnType name=MAIN LPAREN type argName=ID RPAREN
         LCURLY ( varDecl )* ( stmt )* RCURLY
     ;
 
@@ -95,7 +95,7 @@ type
     | value=BOOLEAN
     | value=INT
     | value=ID
-    | value=STATICVOID
+    | value=VOID
     ;
 
 stmt
