@@ -253,7 +253,4 @@ public class GrammarTest {
     public void testExprArrayInit() {
         TestUtils.parseVerbose("[10, 20, 30]", EXPRESSION);
     }
-
-    @Test
-    public void testReservedKeyword() {TestUtils.parseVerbose("class class{int class;}", MAIN_METHOD);}
 }

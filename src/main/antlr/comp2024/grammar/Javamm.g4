@@ -32,6 +32,7 @@ EXTENDS : 'extends' ;
 CLASS : 'class' ;
 INT : 'int' ;
 BOOLEAN : 'boolean' ;
+STRING : 'String' ;
 VOID : 'void' ;
 MAIN : 'main' ;
 IF : 'if' ;
@@ -46,8 +47,6 @@ INTEGER : '0' | ([1-9][0-9]*);
 ID : [a-zA-Z_$]([a-zA-Z_0-9$])* ;
 LINECOMMENT : '//' .*? '\n' -> skip ;
 MULTILINECOMMENT : '/*' .*? '*/' -> skip ;
-STRING_ARRAY : 'String[]' ;
-INT_ARRAY : 'int' (' ')* '[' (' ')* ']' ;
 
 WS : [ \t\n\r\f]+ -> skip ;
 
@@ -88,12 +87,13 @@ methodDecl locals[boolean isPublic=false]
         LCURLY ( varDecl )* ( stmt )* RCURLY
     ;
 
-type
-    : value=INT_ARRAY
-    | value=STRING_ARRAY
+type locals[boolean isArray=false]
+    : (value=INT'['']' {$isArray=true;})
+    | (value=STRING'['']' {$isArray=true;})
     | value=INT'...'
     | value=BOOLEAN
     | value=INT
+    | value=STRING
     | value=ID
     | value=VOID
     ;

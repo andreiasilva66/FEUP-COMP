@@ -52,11 +52,11 @@ public class JmmSymbolTableBuilder {
             if (!method.getChildren().isEmpty()) {
                 var type = method.getChild(0);
                 for (var param : method.getChildren(TYPE)) {
-                    if (param.get("value").equals("String[]")) {
+                    if (param.get("value").equals("String")) {
                         continue;
                     }
                     else {
-                        fields.add(new Symbol(new Type(param.get("value"), false), type.getChild(0).get("value")));
+                        fields.add(new Symbol(new Type(param.get("value"), false), param.get("value")));
                     }
                 }
             }
@@ -72,11 +72,13 @@ public class JmmSymbolTableBuilder {
         var child = classDecl.getChildren(METHOD_DECL);
         for (var method : child) {
                 var type = method.getChild(0);
-                if (type.getChild(0).get("value").equals("int[]")) {
-                    map.put(method.get("name"), new Type("int", true));
+                if (type.getChild(0).get("isArray").equals("true")) {
+                    boolean value = true;
+                    map.put(method.get("name"), new Type(type.getChild(0).get("value"), value));
                 }
                 else {
-                    map.put(method.get("name"), new Type(type.getChild(0).get("value"), false));
+                    boolean value = false;
+                    map.put(method.get("name"), new Type(type.getChild(0).get("value"), value));
                 }
         }
 
