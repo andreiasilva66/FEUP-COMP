@@ -69,7 +69,8 @@ classDecl
     ;
 
 varDecl
-    : type name=ID|MAIN SEMI
+    : type name=ID SEMI
+    | type name=MAIN SEMI
     | type name=ID LRECT RRECT SEMI
     ;
 
