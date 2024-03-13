@@ -46,8 +46,9 @@ public class JmmParserImpl implements JmmParser {
 
 
             // Convert ANTLR CST to JmmNode AST
-            return AntlrParser.parse(lex, parser, startingRule, config);
+            var r = AntlrParser.parse(lex, parser, startingRule, config);
 
+            return r;
         } catch (Exception e) {
             // There was an uncaught exception during parsing, create an error JmmParserResult without root node
             return JmmParserResult.newError(Report.newError(Stage.SYNTATIC, -1, -1, "Exception during parsing", e), config);

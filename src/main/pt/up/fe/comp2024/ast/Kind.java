@@ -19,6 +19,7 @@ public enum Kind {
     BINARY_EXPR,
     INTEGER_LITERAL,
     BOOLEAN,
+    I_D_EXPR,
     VAR_REF_EXPR;
 
 
