@@ -120,7 +120,7 @@ expr
     | expr op= AND expr #BinaryExpr
     | INTEGER #Integer
     | value=(TRUE | FALSE) #BOOLEAN
-    | value=ID #IDExpr
+    | name=ID #IDExpr
     | THIS #ThisExpr
     | expr DOT LENGTH #GetLength
     | expr DOT value=ID LPAREN ( expr ( COMMA expr )* )? RPAREN #GetMethod

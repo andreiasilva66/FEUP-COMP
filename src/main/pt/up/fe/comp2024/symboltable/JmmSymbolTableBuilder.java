@@ -16,6 +16,8 @@ public class JmmSymbolTableBuilder {
 
     public static JmmSymbolTable build(JmmNode root) {
 
+        System.out.println(root.toTree());
+
         var classDecl = root.getChildren().get(root.getChildren().size() - 1);
 
         SpecsCheck.checkArgument(Kind.CLASS_DECL.check(classDecl), () -> "Expected a class declaration: " + classDecl);
@@ -115,7 +117,7 @@ public class JmmSymbolTableBuilder {
                 var type = method.getChild(0);
                 var locals = new ArrayList<Symbol>();
                 for (var local : method.getChildren(Kind.VAR_DECL)) {
-                    locals.add(new Symbol(new Type(local.getChild(0).get("value"), false), method.get("name")));
+                    locals.add(new Symbol(new Type(local.getChild(0).get("value"), false), local.get("name")));
                 }
                 map.put(method.get("name"), locals);
             }
