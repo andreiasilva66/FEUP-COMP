@@ -40,8 +40,6 @@ public class JmmAnalysisImpl implements JmmAnalysis {
 
         // Visit all nodes in the AST
         for (var analysisPass : analysisPasses) {
-            System.out.println("entrou no for loop");
-            //System.out.printf(analysisPass.getClass().toString());
             try {
                 var passReports = analysisPass.analyze(rootNode, table);
                 reports.addAll(passReports);

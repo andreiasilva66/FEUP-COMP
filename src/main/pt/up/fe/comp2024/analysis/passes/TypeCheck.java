@@ -20,8 +20,6 @@ public class TypeCheck extends AnalysisVisitor {
 
     private Void binTypes(JmmNode node, SymbolTable table) {
 
-        System.out.println("No multTypes");
-
         var left = node.getChild(0);
         var right = node.getChild(1);
         var leftType = left.getChildren(Kind.TYPE);

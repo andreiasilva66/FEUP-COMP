@@ -22,6 +22,8 @@ public class UndeclaredVariable extends AnalysisVisitor {
     public void buildVisitor() {
         addVisit(Kind.METHOD_DECL, this::visitMethodDecl);
         addVisit(Kind.I_D_EXPR, this::visitVarRefExpr);
+        addVisit(Kind.VAR_REF_EXPR, this::visitVarRefExpr);
+        addVisit(Kind.ASSIGN_STMT, this::visitAssignStmt);
     }
 
     private Void visitMethodDecl(JmmNode method, SymbolTable table) {
@@ -66,5 +68,43 @@ public class UndeclaredVariable extends AnalysisVisitor {
         return null;
     }
 
+    private Void visitAssignStmt(JmmNode assignStmt, SymbolTable table) {
+        System.out.println("visitAssignStmt function");
+        SpecsCheck.checkNotNull(currentMethod, () -> "Expected current method to be set");
 
+        var varRefName = assignStmt.getChild(0).get("name");
+        var varRefValue = assignStmt.getChild(0).get("value");
+
+        if(varRefValue == "int" || varRefValue == "boolean") {
+            return null;
+        }
+
+        if (table.getFields().stream()
+                .anyMatch(param -> param.getName().equals(varRefValue))) {
+            return null;
+        }
+
+        // Var is a parameter, return
+        if (table.getParameters(currentMethod).stream()
+                .anyMatch(param -> param.getName().equals(varRefValue))) {
+            return null;
+        }
+
+        // Var is a declared variable, return
+        if (table.getLocalVariables(currentMethod).stream()
+                .anyMatch(varDecl -> varDecl.getName().equals(varRefValue))) {
+            return null;
+        }
+
+        var message = String.format("Error assigning to variable '%s'.", varRefName);
+        addReport(Report.newError(
+                Stage.SEMANTIC,
+                NodeUtils.getLine(assignStmt),
+                NodeUtils.getColumn(assignStmt),
+                message,
+                null)
+        );
+
+        return null;
+    }
 }
