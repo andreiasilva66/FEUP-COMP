@@ -16,7 +16,7 @@ public class JmmSymbolTableBuilder {
 
     public static JmmSymbolTable build(JmmNode root) {
 
-        System.out.println(root.toTree());
+        //System.out.println(root.toTree());
 
         var classDecl = root.getChildren().get(root.getChildren().size() - 1);
 
@@ -88,7 +88,6 @@ public class JmmSymbolTableBuilder {
     }
 
     private static Map<String, List<Symbol>> buildParams(JmmNode classDecl) {
-
         Map<String, List<Symbol>> map = new HashMap<>();
 
         var child = classDecl.getChildren(METHOD_DECL);
@@ -98,9 +97,8 @@ public class JmmSymbolTableBuilder {
                 var type = method.getChild(0);
                 for (var param : method.getChildren(TYPE)) {
                     params.add(new Symbol(new Type(param.get("value"), false), type.getChild(0).get("value")));
-                    map.put(method.get("name"), params);
                 }
-                map.computeIfAbsent(method.get("name"), k -> new ArrayList<>());
+                map.put(method.get("name"), params);
             }
         }
 

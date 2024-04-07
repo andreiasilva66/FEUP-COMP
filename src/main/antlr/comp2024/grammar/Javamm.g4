@@ -125,6 +125,7 @@ expr
     | expr DOT LENGTH #GetLength
     | expr DOT value=ID LPAREN ( expr ( COMMA expr )* )? RPAREN #GetMethod
     | LRECT (expr ( COMMA expr)* )? RRECT #List
+    | ID LPAREN (expr (COMMA expr)*)? RPAREN #VarargsMethodCall
     ;
 
 

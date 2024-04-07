@@ -14,23 +14,62 @@ public class TypeCheck extends AnalysisVisitor {
     private String currentMethod;
 
     public void buildVisitor() {
-        addVisit(Kind.METHOD_DECL, this::visitMethodDecl);
-        addVisit(Kind.I_D_EXPR, this::visitVarRefExpr);
+        addVisit(Kind.BINARY_EXPR, this::binTypes);
+        addVisit(Kind.ASSIGN_STMT, this::listTypes);
     }
 
-    private Void multTypes(JmmNode node, SymbolTable table) {
+    private Void binTypes(JmmNode node, SymbolTable table) {
+
+        System.out.println("No multTypes");
 
         var left = node.getChild(0);
         var right = node.getChild(1);
         var leftType = left.getChildren(Kind.TYPE);
         var rightType = right.getChildren(Kind.TYPE);
-        if (!leftType.equals(rightType)) {
+        if (leftType.equals("int") || leftType.equals("float")) {
+            if (rightType.equals("int") || rightType.equals("float")) {
+                return null;
+            } else {
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Incompatible types: " + leftType + " and " + rightType,
+                        null
+                ));
+            }
+        } else {
             addReport(Report.newError(
-                Stage.SEMANTIC,
-                NodeUtils.getLine(node),
-                NodeUtils.getCol(node),
-                "Incompatible types: " + leftType + " and " + rightType
+                    Stage.SEMANTIC,
+                    NodeUtils.getLine(node),
+                    NodeUtils.getColumn(node),
+                    "Incompatible types: " + leftType + " and " + rightType,
+                    null
             ));
+        }
+        return null;
+    }
+
+    private Void listTypes(JmmNode node, SymbolTable table) {
+        var type = node.getChild(0);
+
+        System.out.println("Na list Type");
+
+        if(type.toString() == "List"){
+            var child = node.getChildren();
+            for(var c : child){
+                if(c.getChildren(Kind.TYPE).equals(type.getChildren(Kind.TYPE))){
+                    continue;
+                } else {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Incompatible types: " + node.getChildren(Kind.TYPE),
+                            null
+                    ));
+                }
+            }
         }
         return null;
     }

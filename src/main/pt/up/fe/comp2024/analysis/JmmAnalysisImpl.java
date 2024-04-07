@@ -30,12 +30,18 @@ public class JmmAnalysisImpl implements JmmAnalysis {
 
         JmmNode rootNode = parserResult.getRootNode();
 
+        System.out.println(rootNode.toTree());
+
         SymbolTable table = JmmSymbolTableBuilder.build(rootNode);
+
+        System.out.println(table.print());
 
         List<Report> reports = new ArrayList<>();
 
         // Visit all nodes in the AST
         for (var analysisPass : analysisPasses) {
+            System.out.println("entrou no for loop");
+            //System.out.printf(analysisPass.getClass().toString());
             try {
                 var passReports = analysisPass.analyze(rootNode, table);
                 reports.addAll(passReports);
