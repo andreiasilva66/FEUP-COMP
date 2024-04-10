@@ -24,14 +24,11 @@ LENGTH : 'length' ;
 THIS : 'this' ;
 NEW : 'new' ;
 
-TRUE : 'true' ;
-FALSE : 'false' ;
-
 IMPORT : 'import' ;
 EXTENDS : 'extends' ;
 CLASS : 'class' ;
 INT : 'int' ;
-BOOLEAN : 'boolean' ;
+BOOL : 'boolean' ;
 STRING : 'String' ;
 VOID : 'void' ;
 MAIN : 'main' ;
@@ -43,6 +40,7 @@ COMMA : ',' ;
 PUBLIC : 'public' ;
 RETURN : 'return' ;
 
+BOOLEAN : 'true' | 'false' ;
 INTEGER : '0' | ([1-9][0-9]*);
 ID : [a-zA-Z_$]([a-zA-Z_0-9$])* ;
 LINECOMMENT : '//' .*? '\n' -> skip ;
@@ -91,7 +89,7 @@ type locals[boolean isArray=false]
     : (value=INT'['']' {$isArray=true;})
     | (value=STRING'['']' {$isArray=true;})
     | value=INT'...'
-    | value=BOOLEAN
+    | value=BOOL
     | value=INT
     | value=STRING
     | value=ID
@@ -103,8 +101,8 @@ stmt
     | IF LPAREN expr RPAREN stmt ELSE stmt #IfElseStmt
     | WHILE LPAREN expr RPAREN stmt #WhileStmt
     | expr SEMI #SemiColonStmt
-    | var=ID EQUALS expr SEMI #IDAssignStmt
-    | var=ID LRECT expr RRECT EQUALS expr SEMI #IDCurlyAssignStmt
+    | name=ID EQUALS expr SEMI #IDAssignStmt
+    | name=ID LRECT expr RRECT EQUALS expr SEMI #IDCurlyAssignStmt
     | RETURN expr SEMI #ReturnStmt
     ;
 
@@ -118,8 +116,8 @@ expr
     | expr op= (ADD | SUB) expr #BinaryExpr //
     | expr op= LESS expr #BinaryExpr //
     | expr op= AND expr #BinaryExpr
-    | INTEGER #Integer
-    | value=(TRUE | FALSE) #BOOLEAN
+    | INTEGER #IntegerExpr
+    | BOOLEAN #BooleanExpr
     | name=ID #IDExpr
     | THIS #ThisExpr
     | expr DOT LENGTH #GetLength
