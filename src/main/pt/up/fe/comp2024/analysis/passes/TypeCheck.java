@@ -7,11 +7,8 @@ import pt.up.fe.comp.jmm.report.Stage;
 import pt.up.fe.comp2024.analysis.AnalysisVisitor;
 import pt.up.fe.comp2024.ast.Kind;
 import pt.up.fe.comp2024.ast.NodeUtils;
-import pt.up.fe.specs.util.SpecsCheck;
 
 import java.util.Objects;
-
-import static pt.up.fe.comp2024.ast.Kind.I_D_ASSIGN_STMT;
 
 public class TypeCheck extends AnalysisVisitor {
 
@@ -20,6 +17,7 @@ public class TypeCheck extends AnalysisVisitor {
     public void buildVisitor() {
         addVisit(Kind.BINARY_EXPR, this::binTypes);
         addVisit(Kind.METHOD_DECL, this::listTypes);
+        addVisit(Kind.CLASS_DECL, this::checkDeclaredMethods);
     }
 
     private Void binTypes(JmmNode node, SymbolTable table) {
@@ -54,6 +52,51 @@ public class TypeCheck extends AnalysisVisitor {
 
     private Void listTypes(JmmNode node, SymbolTable table) {
         var returntype = node.getChild(0);
+        var vardecls = node.getChildren(Kind.VAR_DECL);
+        for (var varDecl : vardecls) {
+            var name = varDecl.get("name");
+            var checkArray = varDecl.getChild(0).get("isArray");
+            var value = varDecl.getChild(0).get("value");
+            var assignstmt = node.getChildren(Kind.I_D_ASSIGN_STMT);
+            for (var stmt : assignstmt) {
+                var stmtname = stmt.get("name");
+                System.out.println("StmtName: " + stmtname);
+                if (Objects.equals(stmtname, name) && Objects.equals(value, "boolean") && Objects.equals(stmt.getChild(0).isInstance(Kind.INTEGER_EXPR), true)) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Can't assign int to bool: " + value + " and " + stmt.getChild(0),
+                            null
+                    ));
+                }
+                if (Objects.equals(stmtname, name) && (Objects.equals(value, "int") || Objects.equals(value, "float")) && Objects.equals(stmt.getChild(0).isInstance(Kind.BOOLEAN_EXPR), true)) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Can't assign bool to int: " + value + " and " + stmt.getChild(0),
+                            null
+                    ));
+                }
+            }
+            var whilestmts = node.getChildren(Kind.WHILE_STMT);
+            for (var whileStmt : whilestmts) {
+                var idexprs = whileStmt.getChildren(Kind.I_D_EXPR);
+                for (var idexpr : idexprs) {
+                    var idname = idexpr.get("name");
+                    if (Objects.equals(name, idname) && checkArray.equals("true")) {
+                        addReport(Report.newError(
+                                Stage.SEMANTIC,
+                                NodeUtils.getLine(node),
+                                NodeUtils.getColumn(node),
+                                "Can't do a while statement with array: " + node.getChildren(Kind.TYPE),
+                                null
+                        ));
+                    }
+                }
+            }
+        }
         var assignstmt = node.getChildren(Kind.I_D_ASSIGN_STMT);
         System.out.println("IDAssignStmt: " + assignstmt);
         for (var stmt : assignstmt) {
@@ -74,8 +117,7 @@ public class TypeCheck extends AnalysisVisitor {
                 for (var c : child) {
                     if (c.toString().equals(firstExpr.toString())) {
                         continue;
-                    }
-                    else {
+                    } else {
                         addReport(Report.newError(
                                 Stage.SEMANTIC,
                                 NodeUtils.getLine(node),
@@ -88,6 +130,39 @@ public class TypeCheck extends AnalysisVisitor {
             }
         }
 
+        return null;
+    }
+
+    private Void checkDeclaredMethods(JmmNode node, SymbolTable table) {
+        int counter = 0;
+        Boolean checkMethod = false;
+        var classname = node.get("className");
+        var methods = node.getChildren(Kind.METHOD_DECL);
+        for (var method : methods) {
+            var vardecls = method.getChildren(Kind.VAR_DECL);
+            for (var varDecl : vardecls) {
+                var typevalue = varDecl.getChild(0).get("value");
+                if (Objects.equals(typevalue, classname)) {
+                    checkMethod = true;
+                    var semicolonstmts = method.getChildren(Kind.SEMI_COLON_STMT);
+                    for (var semicolonstmt : semicolonstmts) {
+                        var getmethodvalue = semicolonstmt.getChild(0).get("value");
+                        if (Objects.equals(method.get("name"), getmethodvalue)) {
+                            counter++;
+                        }
+                    }
+                }
+            }
+        }
+        if (checkMethod && counter == 0) {
+            addReport(Report.newError(
+                    Stage.SEMANTIC,
+                    NodeUtils.getLine(node),
+                    NodeUtils.getColumn(node),
+                    "Method not declared: " + node.getChildren(Kind.METHOD_DECL),
+                    null
+            ));
+        }
         return null;
     }
 }

@@ -19,7 +19,12 @@ public enum Kind {
     BINARY_EXPR,
     INTEGER_LITERAL,
     BOOLEAN,
+    BOOLEAN_EXPR,
+    INTEGER_EXPR,
     I_D_EXPR,
+    WHILE_STMT,
+    GET_METHOD,
+    SEMI_COLON_STMT,
     VAR_REF_EXPR;
 
 
