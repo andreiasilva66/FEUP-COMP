@@ -11,6 +11,7 @@ public enum Kind {
     IMPORT_DECL,
     CLASS_DECL,
     VAR_DECL,
+    ARRAY_EXPR,
     TYPE,
     METHOD_DECL,
     PARAM,

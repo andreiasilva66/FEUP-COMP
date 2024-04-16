@@ -10,6 +10,9 @@ import pt.up.fe.comp2024.ast.NodeUtils;
 
 import java.util.Objects;
 
+import static pt.up.fe.comp2024.ast.Kind.I_D_EXPR;
+import static pt.up.fe.comp2024.ast.Kind.PARAM;
+
 public class TypeCheck extends AnalysisVisitor {
 
     private String currentMethod;
@@ -18,6 +21,43 @@ public class TypeCheck extends AnalysisVisitor {
         addVisit(Kind.BINARY_EXPR, this::binTypes);
         addVisit(Kind.METHOD_DECL, this::listTypes);
         addVisit(Kind.GET_METHOD, this::undefMethod);
+        addVisit(Kind.ARRAY_EXPR, this::arrayExpr);
+    }
+
+    private Void arrayExpr(JmmNode node, SymbolTable table) {
+        var locals = table.getLocalVariables(currentMethod);
+        var parent = node.getParent();
+        var varDecls = parent.getChildren(Kind.VAR_DECL);
+        for (var varDecl : varDecls) {
+            var checkArray = varDecl.getChild(0).get("isArray");
+            System.out.println(checkArray);
+            if (Objects.equals(checkArray, "false")) {
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Can't do an array expression with non array: " + node.getChildren(Kind.TYPE),
+                        null
+                ));
+
+            }
+        }
+        var idexprs = node.getChildren(I_D_EXPR);
+        for (var idexpr : idexprs) {
+            var idname = idexpr.get("name");
+            for (var local : locals) {
+                if (Objects.equals(local.getName(), idname) && !Objects.equals(local.getType().getName(), "int")) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Can't do an array expression with non int: " + node.getChildren(Kind.TYPE),
+                            null
+                    ));
+                }
+            }
+        }
+        return null;
     }
 
     private Void binTypes(JmmNode node, SymbolTable table) {
@@ -38,7 +78,8 @@ public class TypeCheck extends AnalysisVisitor {
                         null
                 ));
             }
-        } else {
+        }
+        else {
             addReport(Report.newError(
                     Stage.SEMANTIC,
                     NodeUtils.getLine(node),
@@ -52,6 +93,22 @@ public class TypeCheck extends AnalysisVisitor {
 
     private Void listTypes(JmmNode node, SymbolTable table) {
         currentMethod = node.get("name");
+        if (currentMethod.equals("varargs")) {
+            var params = table.getParameters(currentMethod);
+            for (var param : params) {
+                for (var param2 : params) {
+                    if (!Objects.equals(param.getName(), param2.getName()) && !Objects.equals(param.getType().getName(), param2.getType().getName())) {
+                        addReport(Report.newError(
+                                Stage.SEMANTIC,
+                                NodeUtils.getLine(node),
+                                NodeUtils.getColumn(node),
+                                "Different types: " + param.getType().getName() + " and " + param2.getType().getName(),
+                                null
+                        ));
+                    }
+                }
+            }
+        }
         var returntype = node.getChild(0);
         var vardecls = node.getChildren(Kind.VAR_DECL);
         for (var varDecl : vardecls) {
@@ -79,7 +136,7 @@ public class TypeCheck extends AnalysisVisitor {
                             null
                     ));
                 }
-                else if (Objects.equals(stmtname, name) && Objects.equals(stmt.getChild(0).isInstance(Kind.I_D_EXPR), true)){
+                else if (Objects.equals(stmtname, name) && Objects.equals(stmt.getChild(0).isInstance(I_D_EXPR), true)){
                     var idexpr = stmt.getChild(0);
                     var idname = idexpr.get("name");
                     var assigns = node.getChildren(Kind.VAR_DECL);
@@ -118,7 +175,7 @@ public class TypeCheck extends AnalysisVisitor {
             }
             var whilestmts = node.getChildren(Kind.WHILE_STMT);
             for (var whileStmt : whilestmts) {
-                var idexprs = whileStmt.getChildren(Kind.I_D_EXPR);
+                var idexprs = whileStmt.getChildren(I_D_EXPR);
                 for (var idexpr : idexprs) {
                     var idname = idexpr.get("name");
                     if (Objects.equals(name, idname) && checkArray.equals("true")) {
@@ -171,31 +228,33 @@ public class TypeCheck extends AnalysisVisitor {
     public Void undefMethod(JmmNode node, SymbolTable table) {
         var methodName = node.get("value");
         var methods = table.getMethods();
-        var varName = node.getChild(0).get("name");
+        var varNames = node.getChildren(I_D_EXPR);
+        if (!varNames.isEmpty()) {
+            var varName = varNames.get(0).get("name");
+            for (var imp : table.getImports()) {
+                for (var field : table.getFields()) {
+                    if (Objects.equals(field.getName(), varName) && Objects.equals(field.getType().getName(), imp))
+                        return null;
+                }
+                for (var param : table.getParameters(currentMethod)) {
+                    if (Objects.equals(param.getName(), varName) && Objects.equals(param.getType().getName(), imp))
+                        return null;
+                }
+                for (var local : table.getLocalVariables(currentMethod)) {
+                    if (Objects.equals(local.getName(), varName) && Objects.equals(local.getType().getName(), imp))
+                        return null;
+                }
+            }
 
-        for(var imp : table.getImports()){
-            for ( var field : table.getFields()){
-                if(Objects.equals(field.getName(), varName) && Objects.equals(field.getType().getName(), imp))
-                    return null;
+            if (!methods.contains(methodName) && Objects.equals(table.getSuper(), null)) {
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Method not defined: " + methodName,
+                        null
+                ));
             }
-            for( var param : table.getParameters(currentMethod)){
-                if(Objects.equals(param.getName(), varName) && Objects.equals(param.getType().getName(), imp))
-                    return null;
-            }
-            for( var local : table.getLocalVariables(currentMethod)){
-                if(Objects.equals(local.getName(), varName) && Objects.equals(local.getType().getName(), imp))
-                    return null;
-            }
-        }
-
-        if (!methods.contains(methodName) && Objects.equals(table.getSuper(), null)) {
-            addReport(Report.newError(
-                    Stage.SEMANTIC,
-                    NodeUtils.getLine(node),
-                    NodeUtils.getColumn(node),
-                    "Method not defined: " + methodName,
-                    null
-            ));
         }
         return null;
     }

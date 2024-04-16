@@ -112,7 +112,7 @@ stmt
 
 expr
     : LPAREN expr RPAREN #ParenthesisExpr
-    | expr LRECT expr RRECT #BinaryExpr
+    | expr LRECT expr RRECT #ArrayExpr
     | NOT expr #NotExpr
     | NEW INT LRECT expr RRECT #NewInt //
     | NEW ID LPAREN RPAREN #NewID
@@ -127,7 +127,6 @@ expr
     | expr DOT LENGTH #GetLength
     | expr DOT value=ID LPAREN ( expr ( COMMA expr )* )? RPAREN #GetMethod
     | LRECT (expr ( COMMA expr)* )? RRECT #List
-    | ID LPAREN (expr (COMMA expr)*)? RPAREN #VarargsMethodCall
     ;
 
 
