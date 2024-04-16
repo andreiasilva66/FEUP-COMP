@@ -17,7 +17,7 @@ public class TypeCheck extends AnalysisVisitor {
     public void buildVisitor() {
         addVisit(Kind.BINARY_EXPR, this::binTypes);
         addVisit(Kind.METHOD_DECL, this::listTypes);
-        addVisit(Kind.CLASS_DECL, this::checkDeclaredMethods);
+        addVisit(Kind.GET_METHOD, this::undefMethod);
     }
 
     private Void binTypes(JmmNode node, SymbolTable table) {
@@ -51,6 +51,7 @@ public class TypeCheck extends AnalysisVisitor {
     }
 
     private Void listTypes(JmmNode node, SymbolTable table) {
+        currentMethod = node.get("name");
         var returntype = node.getChild(0);
         var vardecls = node.getChildren(Kind.VAR_DECL);
         for (var varDecl : vardecls) {
@@ -60,7 +61,6 @@ public class TypeCheck extends AnalysisVisitor {
             var assignstmt = node.getChildren(Kind.I_D_ASSIGN_STMT);
             for (var stmt : assignstmt) {
                 var stmtname = stmt.get("name");
-                System.out.println("StmtName: " + stmtname);
                 if (Objects.equals(stmtname, name) && Objects.equals(value, "boolean") && Objects.equals(stmt.getChild(0).isInstance(Kind.INTEGER_EXPR), true)) {
                     addReport(Report.newError(
                             Stage.SEMANTIC,
@@ -78,6 +78,42 @@ public class TypeCheck extends AnalysisVisitor {
                             "Can't assign bool to int: " + value + " and " + stmt.getChild(0),
                             null
                     ));
+                }
+                else if (Objects.equals(stmtname, name) && Objects.equals(stmt.getChild(0).isInstance(Kind.I_D_EXPR), true)){
+                    var idexpr = stmt.getChild(0);
+                    var idname = idexpr.get("name");
+                    var assigns = node.getChildren(Kind.VAR_DECL);
+                    for (var assign : assigns){
+                        if( Objects.equals(idname, assign.get("name"))){
+                            var assignType = assign.getChild(0);
+                            var imports = table.getImports();
+                            Boolean varIsImported = false;
+                            Boolean assignIsImported = false;
+                            for( var imp : imports){
+                                if(Objects.equals(imp, assignType.get("value"))) {
+                                    assignIsImported = true;
+                                }
+                                if(Objects.equals(imp, varDecl.getChild(0).get("value"))){
+                                    varIsImported = true;
+                                }
+                            }
+                            if(varIsImported && assignIsImported){
+                                continue;
+                            }
+                            if((Objects.equals(assignType.get("value"), table.getClassName()) && Objects.equals(varDecl.getChild(0).get("value"), table.getSuper())) || (Objects.equals(assignType.get("value"), table.getSuper()) && Objects.equals(varDecl.getChild(0).get("value"), table.getClassName()))){
+                                continue;
+                            }
+                            if(!Objects.equals(assignType, varDecl.getChild(0))){
+                                addReport(Report.newError(
+                                        Stage.SEMANTIC,
+                                        NodeUtils.getLine(node),
+                                        NodeUtils.getColumn(node),
+                                        "Incompatible types: " + assignType + " and " + varDecl.getChild(0),
+                                        null
+                                ));
+                            }
+                        }
+                    }
                 }
             }
             var whilestmts = node.getChildren(Kind.WHILE_STMT);
@@ -98,7 +134,6 @@ public class TypeCheck extends AnalysisVisitor {
             }
         }
         var assignstmt = node.getChildren(Kind.I_D_ASSIGN_STMT);
-        System.out.println("IDAssignStmt: " + assignstmt);
         for (var stmt : assignstmt) {
             var children = stmt.getChildren();
             var id = children.get(0);
@@ -133,33 +168,32 @@ public class TypeCheck extends AnalysisVisitor {
         return null;
     }
 
-    private Void checkDeclaredMethods(JmmNode node, SymbolTable table) {
-        int counter = 0;
-        Boolean checkMethod = false;
-        var classname = node.get("className");
-        var methods = node.getChildren(Kind.METHOD_DECL);
-        for (var method : methods) {
-            var vardecls = method.getChildren(Kind.VAR_DECL);
-            for (var varDecl : vardecls) {
-                var typevalue = varDecl.getChild(0).get("value");
-                if (Objects.equals(typevalue, classname)) {
-                    checkMethod = true;
-                    var semicolonstmts = method.getChildren(Kind.SEMI_COLON_STMT);
-                    for (var semicolonstmt : semicolonstmts) {
-                        var getmethodvalue = semicolonstmt.getChild(0).get("value");
-                        if (Objects.equals(method.get("name"), getmethodvalue)) {
-                            counter++;
-                        }
-                    }
-                }
+    public Void undefMethod(JmmNode node, SymbolTable table) {
+        var methodName = node.get("value");
+        var methods = table.getMethods();
+        var varName = node.getChild(0).get("name");
+
+        for(var imp : table.getImports()){
+            for ( var field : table.getFields()){
+                if(Objects.equals(field.getName(), varName) && Objects.equals(field.getType().getName(), imp))
+                    return null;
+            }
+            for( var param : table.getParameters(currentMethod)){
+                if(Objects.equals(param.getName(), varName) && Objects.equals(param.getType().getName(), imp))
+                    return null;
+            }
+            for( var local : table.getLocalVariables(currentMethod)){
+                if(Objects.equals(local.getName(), varName) && Objects.equals(local.getType().getName(), imp))
+                    return null;
             }
         }
-        if (checkMethod && counter == 0) {
+
+        if (!methods.contains(methodName) && Objects.equals(table.getSuper(), null)) {
             addReport(Report.newError(
                     Stage.SEMANTIC,
                     NodeUtils.getLine(node),
                     NodeUtils.getColumn(node),
-                    "Method not declared: " + node.getChildren(Kind.METHOD_DECL),
+                    "Method not defined: " + methodName,
                     null
             ));
         }

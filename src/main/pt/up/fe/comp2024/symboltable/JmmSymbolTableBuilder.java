@@ -41,7 +41,7 @@ public class JmmSymbolTableBuilder {
 
     private static List<String> buildImports(JmmNode classDecl) {
         return classDecl.getChildren(Kind.IMPORT_DECL).stream()
-                        .map(importDecl -> importDecl.get("value"))
+                        .map(importDecl -> importDecl.get("ID"))
                         .toList();
     }
 

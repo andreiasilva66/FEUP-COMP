@@ -24,5 +24,12 @@ public class NodeUtils {
         return Boolean.parseBoolean(line);
     }
 
-
+    public static java.util.List<JmmNode> getVarType(JmmNode node, String var) {
+        for(var child : node.getChildren(Kind.VAR_DECL)){
+            if(child.get("name").equals(var)){
+                return child.getChildren(Kind.TYPE);
+            }
+        }
+        return null;
+    }
 }

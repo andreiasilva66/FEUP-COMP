@@ -101,7 +101,7 @@ stmt
     | IF LPAREN expr RPAREN stmt ELSE stmt #IfElseStmt
     | WHILE LPAREN expr RPAREN stmt #WhileStmt
     | expr SEMI #SemiColonStmt
-    | name=ID EQUALS expr SEMI #IDAssignStmt
+    | name=ID EQUALS value=expr SEMI #IDAssignStmt
     | name=ID LRECT expr RRECT EQUALS expr SEMI #IDCurlyAssignStmt
     | RETURN expr SEMI #ReturnStmt
     ;
