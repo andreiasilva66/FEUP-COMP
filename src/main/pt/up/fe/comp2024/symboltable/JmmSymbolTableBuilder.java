@@ -48,20 +48,9 @@ public class JmmSymbolTableBuilder {
     private static List<Symbol> buildFields(JmmNode classDecl) {
 
         List<Symbol> fields = new ArrayList<>();
-
-        var child = classDecl.getChildren(METHOD_DECL);
-        for (var method : child) {
-            if (!method.getChildren().isEmpty()) {
-                var type = method.getChild(0);
-                for (var param : method.getChildren(TYPE)) {
-                    if (param.get("value").equals("String")) {
-                        continue;
-                    }
-                    else {
-                        fields.add(new Symbol(new Type(param.get("value"), false), param.get("value")));
-                    }
-                }
-            }
+        var varDecl = classDecl.getChildren(VAR_DECL);
+        for (var field : varDecl) {
+            fields.add(new Symbol(new Type(field.getChild(0).get("value"), Objects.equals(field.getChild(0).get("isArray"),true)), field.get("name")));
         }
 
         return fields;
@@ -94,9 +83,9 @@ public class JmmSymbolTableBuilder {
         for (var method : child) {
             List<Symbol> params = new ArrayList<>();
             if (!method.getChildren().isEmpty()) {
-                var type = method.getChild(0);
-                for (var param : method.getChildren(TYPE)) {
-                    params.add(new Symbol(new Type(param.get("value"), false), type.getChild(0).get("value")));
+                var methParams = method.getChildren(PARAM);
+                for (var param : methParams) {
+                    params.add(new Symbol(new Type(param.getChild(0).get("value"), Objects.equals(param.getChild(0).get("isArray"),true)), param.get("name")));
                 }
                 map.put(method.get("name"), params);
             }

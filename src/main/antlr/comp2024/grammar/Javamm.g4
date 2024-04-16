@@ -75,10 +75,14 @@ returnType
     : type
     ;
 
+param
+    : type name=ID
+    ;
+
 methodDecl locals[boolean isPublic=false]
     : (PUBLIC {$isPublic=true;})?
         returnType name=ID
-        LPAREN ( type argName=ID (COMMA type argName=ID)* )? RPAREN
+        LPAREN ( param (COMMA param)* )? RPAREN
         LCURLY ( varDecl )* ( stmt )* RETURN expr SEMI RCURLY
     | (PUBLIC {$isPublic=true;})?
         'static' returnType name=MAIN LPAREN type argName=ID RPAREN
