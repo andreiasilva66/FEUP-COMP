@@ -50,7 +50,7 @@ public class JmmSymbolTableBuilder {
         List<Symbol> fields = new ArrayList<>();
         var varDecl = classDecl.getChildren(VAR_DECL);
         for (var field : varDecl) {
-            fields.add(new Symbol(new Type(field.getChild(0).get("value"), Objects.equals(field.getChild(0).get("isArray"),true)), field.get("name")));
+            fields.add(new Symbol(new Type(field.getChild(0).get("value"), Objects.equals(field.getChild(0).get("isArray"),"true")), field.get("name")));
         }
 
         return fields;
@@ -85,7 +85,7 @@ public class JmmSymbolTableBuilder {
             if (!method.getChildren().isEmpty()) {
                 var methParams = method.getChildren(PARAM);
                 for (var param : methParams) {
-                    params.add(new Symbol(new Type(param.getChild(0).get("value"), Objects.equals(param.getChild(0).get("isArray"),true)), param.get("name")));
+                    params.add(new Symbol(new Type(param.getChild(0).get("value"), Objects.equals(param.getChild(0).get("isArray"),"true")), param.get("name")));
                 }
                 map.put(method.get("name"), params);
             }
@@ -101,7 +101,6 @@ public class JmmSymbolTableBuilder {
         var child = classDecl.getChildren(METHOD_DECL);
         for (var method : child) {
             if (!method.getChildren().isEmpty()) {
-                var type = method.getChild(0);
                 var locals = new ArrayList<Symbol>();
                 for (var local : method.getChildren(Kind.VAR_DECL)) {
                     locals.add(new Symbol(new Type(local.getChild(0).get("value"), false), local.get("name")));

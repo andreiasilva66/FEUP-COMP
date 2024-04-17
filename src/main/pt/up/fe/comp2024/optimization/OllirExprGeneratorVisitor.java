@@ -62,9 +62,9 @@ public class OllirExprGeneratorVisitor extends PreorderJmmVisitor<Void, OllirExp
                 .append(lhs.getCode()).append(SPACE);
 
         Type type = TypeUtils.getExprType(node, table);
-        computation.append(node.get("op")).append(OptUtils.toOllirType(type)).append(SPACE)
-                .append(rhs.getCode()).append(END_STMT);
-
+        computation.append(node.getJmmChild(0).get("name")).append(resOllirType).append(SPACE);
+        computation.append(node.get("op")).append(OptUtils.toOllirType(type)).append(SPACE);
+        computation.append(node.getJmmChild(1).get("name")).append(resOllirType).append(SPACE).append(END_STMT);
         return new OllirExprResult(code, computation);
     }
 

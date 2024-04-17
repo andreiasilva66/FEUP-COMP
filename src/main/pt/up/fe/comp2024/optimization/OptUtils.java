@@ -34,7 +34,7 @@ public class OptUtils {
 
         TYPE.checkOrThrow(typeNode);
 
-        String typeName = typeNode.get("name");
+        String typeName = typeNode.get("value");
 
         return toOllirType(typeName);
     }
@@ -47,11 +47,21 @@ public class OptUtils {
 
         String type = "." + switch (typeName) {
             case "int" -> "i32";
+            case "boolean" -> "bool";
+            case "void" -> "V";
+            case "String" -> "String";
             default -> throw new NotImplementedException(typeName);
         };
 
         return type;
     }
 
-
+    public static String toFieldType(String typeName) {
+        return switch (typeName) {
+            case "int" -> "int";
+            case "boolean" -> "bool";
+            case "String" -> "String";
+            default -> throw new NotImplementedException(typeName);
+        };
+    }
 }

@@ -75,17 +75,21 @@ returnType
     : type
     ;
 
+returnStmt
+    : RETURN expr SEMI
+    ;
+
 param
     : type name=ID
     ;
 
-methodDecl locals[boolean isPublic=false]
+methodDecl locals[boolean isPublic=false, boolean isStatic=false]
     : (PUBLIC {$isPublic=true;})?
         returnType name=ID
         LPAREN ( param (COMMA param)* )? RPAREN
-        LCURLY ( varDecl )* ( stmt )* RETURN expr SEMI RCURLY
+        LCURLY ( varDecl )* ( stmt )* returnStmt RCURLY
     | (PUBLIC {$isPublic=true;})?
-        'static' returnType name=MAIN LPAREN type argName=ID RPAREN
+        'static' {$isStatic=true;} returnType name=MAIN LPAREN param RPAREN
         LCURLY ( varDecl )* ( stmt )* RCURLY
     ;
 
@@ -107,7 +111,6 @@ stmt
     | expr SEMI #SemiColonStmt
     | name=ID EQUALS value=expr SEMI #IDAssignStmt
     | name=ID LRECT expr RRECT EQUALS expr SEMI #IDCurlyAssignStmt
-    | RETURN expr SEMI #ReturnStmt
     ;
 
 expr
@@ -120,8 +123,8 @@ expr
     | expr op= (ADD | SUB) expr #BinaryExpr //
     | expr op= LESS expr #BinaryExpr //
     | expr op= AND expr #BinaryExpr
-    | INTEGER #IntegerExpr
-    | BOOLEAN #BooleanExpr
+    | value=INTEGER #IntegerExpr
+    | value=BOOLEAN #BooleanExpr
     | name=ID #IDExpr
     | THIS #ThisExpr
     | expr DOT LENGTH #GetLength

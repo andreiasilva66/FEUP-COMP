@@ -27,7 +27,7 @@ public class TypeCheck extends AnalysisVisitor {
     private Void arrayExpr(JmmNode node, SymbolTable table) {
         var locals = table.getLocalVariables(currentMethod);
         var parent = node.getParent();
-        var varDecls = parent.getChildren(Kind.VAR_DECL);
+        var varDecls = parent.getParent().getChildren(Kind.VAR_DECL);
         for (var varDecl : varDecls) {
             var checkArray = varDecl.getChild(0).get("isArray");
             System.out.println(checkArray);
@@ -207,7 +207,7 @@ public class TypeCheck extends AnalysisVisitor {
                 var child = id.getChildren();
                 var firstExpr = child.get(0);
                 for (var c : child) {
-                    if (c.toString().equals(firstExpr.toString())) {
+                    if (c.getKind().equals(firstExpr.getKind())) {
                         continue;
                     } else {
                         addReport(Report.newError(
