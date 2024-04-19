@@ -165,13 +165,15 @@ public class JasminGenerator {
 
             code.append(methodName).append(methodTypes.toString()).append(NL);
         // Add limits
-            //System.out.println(code);
         code.append(TAB).append(".limit stack 99").append(NL);
         code.append(TAB).append(".limit locals 99").append(NL);
 
         for (var inst : method.getInstructions()) {
             var instCode = StringLines.getLines(generators.apply(inst)).stream()
                     .collect(Collectors.joining(NL + TAB, TAB, NL));
+            if((inst instanceof CallInstruction) && (((CallInstruction) inst).getReturnType().getTypeOfElement() == ElementType.VOID) && ((CallInstruction) inst).getInvocationType().equals(CallType.invokespecial)){
+                instCode += TAB + "pop\n";
+            }
             code.append(instCode);
         }
 
@@ -195,8 +197,10 @@ public class JasminGenerator {
             case STRING -> stringBuilder += "Ljava/lang/String;";
             case VOID -> stringBuilder += "V";
             case OBJECTREF -> {
-                String name = ((ClassType) type).getName();
-                stringBuilder += "L" + this.getObjClass(name) + ";";
+                return stringBuilder;
+            }
+            case THIS -> {
+                return stringBuilder;
             }
             default -> throw new NotImplementedException(type.getTypeOfElement());
         }
@@ -207,7 +211,8 @@ public class JasminGenerator {
     private String generateAssign(AssignInstruction assign) {
         var code = new StringBuilder();
         // generate code for loading what's on the right
-        code.append(generators.apply(assign.getRhs()));
+        var rhs = assign.getRhs();
+        code.append(generators.apply(rhs));
         // store value in the stack in destination
 
         //if ((assign.getRhs() instanceof CallInstruction)) return code.toString();
@@ -252,7 +257,6 @@ public class JasminGenerator {
 
     private String generateOperand(Operand operand) {
         // get register
-        //System.out.println("Load: " + operand);
         var reg = currentMethod.getVarTable().get(operand.getName()).getVirtualReg();
         switch (operand.getType().getTypeOfElement()) {
             case INT32 -> {
@@ -344,11 +348,13 @@ public class JasminGenerator {
                 break;
             }
         }
+
         if(!callType.equals(CallType.NEW)) {
             StringBuilder param = new StringBuilder();
             for (var operand : callInstruction.getOperands()) {
-                if(operand.equals(callInstruction.getOperands().get(0)) || operand.equals(callInstruction.getOperands().get(1))) continue;
-                //System.out.println("Call: " + operand);
+                Boolean cond1 = operand.equals(callInstruction.getOperands().get(0)) && callType.equals(CallType.invokestatic);
+                Boolean cond2 = operand.equals(callInstruction.getOperands().get(1));
+                if(cond1 || cond2) continue;
                 code.append(generators.apply(operand));
                 param.append(myGetType(operand.getType()));
             }
