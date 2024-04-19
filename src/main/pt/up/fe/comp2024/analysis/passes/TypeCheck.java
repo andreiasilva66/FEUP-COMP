@@ -64,6 +64,30 @@ public class TypeCheck extends AnalysisVisitor {
 
         var left = node.getChild(0);
         var right = node.getChild(1);
+        var locals = table.getLocalVariables(currentMethod);
+        var params = table.getParameters(currentMethod);
+        for (var param : params) {
+            if (Objects.equals(param.getName(), left.get("name")) && Objects.equals(param.getType().getName(), "int") && right.getKind().equals("ThisExpr")) {
+                var methods = table.getMethods();
+                if (methods.contains(node.getJmmParent().get("value"))) {
+                    var retType = table.getReturnType(node.getJmmParent().get("value"));
+                    if (retType.getName().equals("int")) {
+                        return null;
+                    }
+                    else {
+                        addReport(Report.newError(
+                                Stage.SEMANTIC,
+                                NodeUtils.getLine(node),
+                                NodeUtils.getColumn(node),
+                                "Incompatible types: " + "int" + " and " + retType,
+                                null
+                        ));
+
+                    }
+                }
+                return null;
+            }
+        }
         var leftType = left.getChildren(Kind.TYPE);
         var rightType = right.getChildren(Kind.TYPE);
         if (leftType.equals("int") || leftType.equals("float")) {
@@ -232,6 +256,9 @@ public class TypeCheck extends AnalysisVisitor {
         if (!varNames.isEmpty()) {
             var varName = varNames.get(0).get("name");
             for (var imp : table.getImports()) {
+                if (varName.equals(imp)) {
+                    return null;
+                }
                 for (var field : table.getFields()) {
                     if (Objects.equals(field.getName(), varName) && Objects.equals(field.getType().getName(), imp))
                         return null;

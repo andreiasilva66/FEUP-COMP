@@ -52,19 +52,21 @@ public class OllirGeneratorVisitor extends AJmmVisitor<Void, String> {
         var methodName = node.get("value");
         code.append("invokestatic(");
         var classMethod = node.getChildren(I_D_EXPR).get(0);
-        var varName = node.getChildren(I_D_EXPR).get(1);
         code.append(classMethod.get("name"));
         code.append(", ");
         code.append("\"");
         code.append(methodName);
         code.append("\"");
-        code.append(", ");
-        code.append(varName.get("name"));
-        // get the return type of the variable
-        var locals = table.getLocalVariables(node.getJmmParent().getJmmParent().get("name"));
-        for (var local : locals) {
-            if (local.getName().equals(varName.get("name"))) {
-                code.append(OptUtils.toOllirType(local.getType()));
+        if (node.getChildren(I_D_EXPR).size() == 2) {
+            var varName = node.getChildren(I_D_EXPR).get(1);
+            code.append(", ");
+            code.append(varName.get("name"));
+            // get the return type of the variable
+            var locals = table.getLocalVariables(node.getJmmParent().getJmmParent().get("name"));
+            for (var local : locals) {
+                if (local.getName().equals(varName.get("name"))) {
+                    code.append(OptUtils.toOllirType(local.getType()));
+                }
             }
         }
         code.append(").");
