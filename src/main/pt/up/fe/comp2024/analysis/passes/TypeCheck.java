@@ -88,12 +88,74 @@ public class TypeCheck extends AnalysisVisitor {
                 return null;
             }
         }
-        var leftType = left.getChildren(Kind.TYPE);
-        var rightType = right.getChildren(Kind.TYPE);
-        if (leftType.equals("int") || leftType.equals("float")) {
-            if (rightType.equals("int") || rightType.equals("float")) {
-                return null;
-            } else {
+        String leftKind = left.getKind();
+        var rightKind = right.getKind();
+        if(leftKind.equals("IntegerExpr") || rightKind.equals("IntegerExpr")){
+            return null;
+        } else if (leftKind.equals("IDExpr")){
+            String leftType = "";
+            for(var local : locals){
+                if(Objects.equals(local.getName(), left.get("name"))){
+                    leftType = local.getType().getName();
+                    break;
+                }
+            }
+            if(leftType.isEmpty()) {
+                for (var param : params) {
+                    if (Objects.equals(param.getName(), left.get("name"))) {
+                        leftType = param.getType().getName();
+                        break;
+                    }
+                }
+                if(leftType.isEmpty()){
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Variable not defined: " + left.get("name"),
+                            null
+                    ));
+                }
+            }
+            if (rightKind.equals("IntegerExpr")) {
+                if (Objects.equals(leftType, "int")) {
+                    return null;
+                } else {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Incompatible types: " + leftType + " and " + right.get("value"),
+                            null
+                    ));
+                }
+            }
+            else if (rightKind.equals("IDExpr")){
+                String rightType = "";
+                for(var local : locals){
+                    if(Objects.equals(local.getName(), right.get("name"))){
+                        rightType = local.getType().getName();
+                    }
+                }
+                if(rightType.isEmpty()) {
+                    for (var param : params) {
+                        if (Objects.equals(param.getName(), right.get("name"))) {
+                            rightType = param.getType().getName();
+                        }
+                    }
+                    if(rightType.isEmpty()){
+                        addReport(Report.newError(
+                                Stage.SEMANTIC,
+                                NodeUtils.getLine(node),
+                                NodeUtils.getColumn(node),
+                                "Variable not defined: " + right.get("name"),
+                                null
+                        ));
+                    }
+                }
+                if(Objects.equals(leftType, rightType)){
+                    return null;
+                }
                 addReport(Report.newError(
                         Stage.SEMANTIC,
                         NodeUtils.getLine(node),
@@ -102,13 +164,26 @@ public class TypeCheck extends AnalysisVisitor {
                         null
                 ));
             }
-        }
-        else {
+            else if (rightKind.equals("GetMethod")) {
+                var rightType = table.getReturnType(right.get("value")).getName();
+                if(Objects.equals(leftType, rightType)){
+                    return null;
+                }
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Incompatible types: " + leftType + " and " + rightType,
+                        null
+                ));
+            }
+
+        } else {
             addReport(Report.newError(
                     Stage.SEMANTIC,
                     NodeUtils.getLine(node),
                     NodeUtils.getColumn(node),
-                    "Incompatible types: " + leftType + " and " + rightType,
+                    "Incompatible types: " + leftKind + " and " + rightKind,
                     null
             ));
         }

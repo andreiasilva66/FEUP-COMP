@@ -118,7 +118,9 @@ expr
     | expr LRECT expr RRECT #ArrayExpr
     | NOT expr #NotExpr
     | NEW INT LRECT expr RRECT #NewInt //
-    | NEW ID LPAREN RPAREN #NewID
+    | NEW value=ID LPAREN RPAREN #NewID
+    | expr DOT LENGTH #GetLength
+    | expr DOT value=ID LPAREN ( expr ( COMMA expr )* )? RPAREN #GetMethod
     | expr op= (MUL | DIV) expr #BinaryExpr //
     | expr op= (ADD | SUB) expr #BinaryExpr //
     | expr op= LESS expr #BinaryExpr //
@@ -127,8 +129,6 @@ expr
     | value=BOOLEAN #BooleanExpr
     | name=ID #IDExpr
     | THIS #ThisExpr
-    | expr DOT LENGTH #GetLength
-    | expr DOT value=ID LPAREN ( expr ( COMMA expr )* )? RPAREN #GetMethod
     | LRECT (expr ( COMMA expr)* )? RRECT #List
     ;
 

@@ -41,9 +41,10 @@ public class TypeUtils {
 
         Type type = switch (kind) {
             case BINARY_EXPR -> getBinExprType(expr);
-            case VAR_REF_EXPR -> getVarExprType(expr, table);
-            case INTEGER_LITERAL -> new Type(INT_TYPE_NAME, false);
-            case BOOLEAN -> new Type("boolean", false);
+            case I_D_EXPR -> getVarExprType(expr, table);
+            case INTEGER_EXPR -> new Type(INT_TYPE_NAME, false);
+            case BOOLEAN_EXPR -> new Type("boolean", false);
+            case GET_METHOD -> table.getReturnType(expr.get("name"));
             default -> throw new UnsupportedOperationException("Can't compute type for expression kind '" + kind + "'");
         };
 
@@ -64,7 +65,27 @@ public class TypeUtils {
 
 
     private static Type getVarExprType(JmmNode varRefExpr, SymbolTable table) {
-        // TODO: Simple implementation that needs to be expanded
+        var name = varRefExpr.get("name");
+        JmmNode parent = varRefExpr.getParent();
+        while(!parent.getKind().equals("MethodDecl")){
+            parent = parent.getParent();
+        }
+        var methodName = parent.get("name");
+        for(var local : table.getLocalVariables(methodName)){
+            if(local.getName().equals(name)){
+                return new Type(local.getType().getName(), local.getType().isArray());
+            }
+        }
+        for(var param : table.getParameters(methodName)){
+            if(param.getName().equals(name)){
+                return new Type(param.getType().getName(), param.getType().isArray());
+            }
+        }
+        for(var field : table.getFields()){
+            if(field.getName().equals(name)){
+                return new Type(field.getType().getName(), field.getType().isArray());
+            }
+        }
         return new Type(INT_TYPE_NAME, false);
     }
 

@@ -26,11 +26,12 @@ public enum Kind {
     WHILE_STMT,
     GET_METHOD,
     SEMI_COLON_STMT,
-    VAR_REF_EXPR;
+    NEW_I_D,
+    THIS_EXPR;
 
 
     private static final Set<Kind> STATEMENTS = Set.of(I_D_ASSIGN_STMT, RETURN_STMT);
-    private static final Set<Kind> EXPRESSIONS = Set.of(BINARY_EXPR, INTEGER_LITERAL, VAR_REF_EXPR);
+    private static final Set<Kind> EXPRESSIONS = Set.of(BINARY_EXPR, INTEGER_LITERAL, I_D_EXPR);
 
     private final String name;
 
