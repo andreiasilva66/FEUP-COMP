@@ -61,6 +61,8 @@ public class JasminGenerator {
         generators.put(CallInstruction.class, this::generateCall);
         generators.put(PutFieldInstruction.class, this::generatePutField);
         generators.put(GetFieldInstruction.class, this::generateGetField);
+        generators.put(CondBranchInstruction.class, this::generateBranch);
+        generators.put(GotoInstruction.class, this::generateGoto);
     }
 
     public List<Report> getReports() {
@@ -88,6 +90,7 @@ public class JasminGenerator {
 
         // generate class name
         var className = ollirResult.getOllirClass().getClassName();
+        System.out.println("Modifier: " + classUnit.getClassAccessModifier());
         code.append(".class ")
                 .append(classModifier)
                 .append(className)
@@ -114,10 +117,14 @@ public class JasminGenerator {
                     .append("\n");
         }
 
-        for (var method : ollirResult.getOllirClass().getMethods()) {
-            code.append(generators.apply(method));
-        }
+        var methods = new StringBuilder();
+        String construct = "";
 
+        for (var method : ollirResult.getOllirClass().getMethods()) {
+            if(method.isConstructMethod()) construct = generators.apply(method);
+            else methods.append(generators.apply(method));
+        }
+        code.append(construct).append(methods);
         return code.toString();
     }
 
@@ -171,6 +178,7 @@ public class JasminGenerator {
         code.append(TAB).append(".limit locals 99").append(NL);
 
         for (var inst : method.getInstructions()) {
+            //System.out.println(inst);
             var instCode = StringLines.getLines(generators.apply(inst)).stream()
                     .collect(Collectors.joining(NL + TAB, TAB, NL));
             if((inst instanceof CallInstruction) && (((CallInstruction) inst).getReturnType().getTypeOfElement() == ElementType.VOID) && ((CallInstruction) inst).getInvocationType().equals(CallType.invokespecial)){
@@ -223,10 +231,10 @@ public class JasminGenerator {
         // get register
         var reg = currentMethod.getVarTable().get(operand.getName()).getVirtualReg();
         var ret = switch (operand.getType().getTypeOfElement()) {
-            case INT32 -> "istore_";
-            case BOOLEAN -> "istore_";
-            case OBJECTREF -> "astore_";
-            case ARRAYREF -> "astore_";
+            case INT32 -> "istore ";
+            case BOOLEAN -> "istore ";
+            case OBJECTREF -> "astore ";
+            case ARRAYREF -> "astore ";
             default -> throw new NotImplementedException(operand.getType().getTypeOfElement());
         };
         // TODO: Only accepts int and bool
@@ -260,18 +268,19 @@ public class JasminGenerator {
     private String generateOperand(Operand operand) {
         // get register
         var reg = currentMethod.getVarTable().get(operand.getName()).getVirtualReg();
+        System.out.println(operand);
         switch (operand.getType().getTypeOfElement()) {
             case INT32 -> {
-                return "iload_" + reg + NL;
+                return "iload " + reg + NL;
             }
             case BOOLEAN -> {
-                return "iload_" + reg + NL;
+                return "iload " + reg + NL;
             }
             case OBJECTREF -> {
-                return "aload_" + reg + NL;
+                return "aload " + reg + NL;
             }
             case ARRAYREF -> {
-                return "aload_" + reg + NL;
+                return "aload " + reg + NL;
             }
             case THIS -> {
                 return "aload_0" + NL;
@@ -293,6 +302,7 @@ public class JasminGenerator {
             case MUL -> "imul";
             case DIV -> "idiv";
             case AND -> "iand";
+            case LTH -> "icmp";
             default -> throw new NotImplementedException(binaryOp.getOperation().getOpType());
         };
 
@@ -409,6 +419,26 @@ public class JasminGenerator {
                 .append(myGetType(field.getType())).append(NL);
         return code.toString();
     }
+
+    private String generateBranch(CondBranchInstruction condBranchInstruction){
+        var code = new StringBuilder();
+        code.append(generators.apply(condBranchInstruction.getCondition()));
+
+
+
+
+
+
+        return code.toString();
+    }
+
+    private String generateGoto(GotoInstruction gotoInstruction){
+        var code = new StringBuilder();
+        code.append("goto").append(NL);
+
+        return code.toString();
+    }
 }
+
 
 
