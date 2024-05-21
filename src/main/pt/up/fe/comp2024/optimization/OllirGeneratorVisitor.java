@@ -120,6 +120,7 @@ public class OllirGeneratorVisitor extends AJmmVisitor<Void, String> {
                 if (node.getChild(0).getKind().equals("IntegerExpr")) {
                     code.append(local.getName());
                     code.append(OptUtils.toOllirType(local.getType()));
+                    code.append(SPACE);
                     code.append(ASSIGN);
                     code.append(OptUtils.toOllirType(local.getType()));
                     code.append(SPACE);
@@ -130,6 +131,7 @@ public class OllirGeneratorVisitor extends AJmmVisitor<Void, String> {
                 if (node.getChild(0).getKind().equals("IDExpr")) {
                     code.append(local.getName());
                     code.append(OptUtils.toOllirType(local.getType()));
+                    code.append(SPACE);
                     code.append(ASSIGN);
                     code.append(OptUtils.toOllirType(local.getType()));
                     code.append(SPACE);
@@ -189,16 +191,23 @@ public class OllirGeneratorVisitor extends AJmmVisitor<Void, String> {
 
         if (node.getNumChildren() > 0) {
             expr = exprVisitor.visit(node.getJmmChild(0));
+            code.append(expr.getComputation());
+            var temp = OptUtils.getTemp();
+            code.append(temp).append(OptUtils.toOllirType(retType));
+            code.append(SPACE).append(ASSIGN).append(OptUtils.toOllirType(retType)).append(SPACE);
+            code.append(expr.getCode());
+            code.append(END_STMT);
+            code.append("ret");
+            code.append(OptUtils.toOllirType(retType));
+            code.append(SPACE);
+            code.append(temp).append(OptUtils.toOllirType(retType));
+            code.append(END_STMT);
         }
-
-        code.append(expr.getComputation());
-        code.append("ret");
-        code.append(OptUtils.toOllirType(retType));
-        code.append(SPACE);
-
-        code.append(expr.getCode());
-
-        code.append(END_STMT);
+        else{
+            code.append("ret");
+            code.append(OptUtils.toOllirType(retType));
+            code.append(END_STMT);
+        }
 
         return code.toString();
     }
