@@ -103,7 +103,7 @@ public class JmmSymbolTableBuilder {
             if (!method.getChildren().isEmpty()) {
                 var locals = new ArrayList<Symbol>();
                 for (var local : method.getChildren(Kind.VAR_DECL)) {
-                    locals.add(new Symbol(new Type(local.getChild(0).get("value"), false), local.get("name")));
+                    locals.add(new Symbol(new Type(local.getChild(0).get("value"), local.getChild(0).get("isArray").equals("true")), local.get("name")));
                 }
                 map.put(method.get("name"), locals);
             }

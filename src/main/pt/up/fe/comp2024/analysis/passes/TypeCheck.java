@@ -22,6 +22,227 @@ public class TypeCheck extends AnalysisVisitor {
         addVisit(Kind.METHOD_DECL, this::listTypes);
         addVisit(Kind.GET_METHOD, this::undefMethod);
         addVisit(Kind.ARRAY_EXPR, this::arrayExpr);
+        addVisit(Kind.BINARY_EXPR, this::binExpr);
+        addVisit(Kind.RETURN_STMT, this::returnStmt);
+        addVisit(Kind.IF_ELSE_STMT, this::ifElseStmt);
+    }
+
+    private Void ifElseStmt(JmmNode node, SymbolTable table){
+        var condition = node.getChild(0);
+        if(condition.getKind().equals("BooleanExpr")){
+            return null;
+        }
+        addReport(Report.newError(
+                Stage.SEMANTIC,
+                NodeUtils.getLine(node),
+                NodeUtils.getColumn(node),
+                "Incompatible types: " + condition.getKind() + " and " + "boolean",
+                null
+        ));
+        return null;
+    }
+
+    private Void returnStmt(JmmNode node, SymbolTable table) {
+        var method = node.getParent();
+        var returnType = table.getReturnType(method.get("name"));
+        var returnExpr = node.getChild(0);
+        if (returnType.getName().equals("int") && returnExpr.getKind().equals("IntegerExpr")) {
+            return null;
+        }
+        if (returnType.getName().equals("boolean") && returnExpr.getKind().equals("BooleanExpr")) {
+            return null;
+        }
+        if(returnExpr.getKind().equals("IDExpr")){
+            var idName = returnExpr.get("name");
+            var locals = table.getLocalVariables(currentMethod);
+            var params = table.getParameters(currentMethod);
+            for (var param : params) {
+                if (Objects.equals(param.getName(), idName)){
+                    if (Objects.equals(param.getType().getName(), returnType.getName()) && Objects.equals(param.getType().isArray(), returnType.isArray())) {
+                        return null;
+                    }
+                    else {
+                        addReport(Report.newError(
+                                Stage.SEMANTIC,
+                                NodeUtils.getLine(node),
+                                NodeUtils.getColumn(node),
+                                "Incompatible types: " + idName + " and " + returnType.getName(),
+                                null
+                        ));
+                    }
+                }
+            }
+            for (var local : locals) {
+                if (Objects.equals(local.getName(), idName)){
+                    if(Objects.equals(local.getType().getName(), returnType.getName()) && Objects.equals(local.getType().isArray(), returnType.isArray())){
+                        return null;
+                    }
+                    else
+                        addReport(Report.newError(
+                                Stage.SEMANTIC,
+                                NodeUtils.getLine(node),
+                                NodeUtils.getColumn(node),
+                                "Incompatible types: " + idName + " and " + returnType.getName(),
+                                null
+                        ));
+                }
+            }
+            addReport(Report.newError(
+                    Stage.SEMANTIC,
+                    NodeUtils.getLine(node),
+                    NodeUtils.getColumn(node),
+                    "Incompatible types: " + idName + " and " + returnType.getName(),
+                    null
+            ));
+        }
+        if(returnExpr.getKind().equals("GetMethod")){
+            var methodName = returnExpr.get("value");
+            var methodReturnType = table.getReturnType(methodName);
+            if(Objects.equals(methodReturnType.getName(), returnType.getName()) && Objects.equals(methodReturnType.isArray(), returnType.isArray())){
+                return null;
+            }
+            addReport(Report.newError(
+                    Stage.SEMANTIC,
+                    NodeUtils.getLine(node),
+                    NodeUtils.getColumn(node),
+                    "Incompatible types: " + methodName + " and " + returnType.getName(),
+                    null
+            ));
+        }
+        if(returnExpr.getKind().equals("ArrayExpr")){
+            var child = returnExpr.getChild(1);
+            if(child.getKind().equals("IntegerExpr")){
+                if (Objects.equals(returnType.getName(), "int") && Objects.equals(returnType.isArray(), false)) {
+                    return null;
+                }
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Incompatible types: " + returnExpr.getKind() + " and " + returnType.getName(),
+                        null
+                ));
+            }
+        }
+        addReport(Report.newError(
+                Stage.SEMANTIC,
+                NodeUtils.getLine(node),
+                NodeUtils.getColumn(node),
+                "Incompatible types: " + returnExpr.getKind() + " and " + returnType.getName(),
+                null
+        ));
+    return null;
+    }
+
+    private Void binExpr(JmmNode node, SymbolTable table) {
+        var left = node.getChild(0);
+        var right = node.getChild(1);
+        var leftKind = left.getKind();
+        var rightKind = right.getKind();
+        if(leftKind.equals("IntegerExpr") || rightKind.equals("IntegerExpr")){
+            return null;
+        } else if (leftKind.equals("IDExpr")){
+            String leftType = "";
+            Boolean isLeftArray = false;
+            for(var local : table.getLocalVariables(currentMethod)){
+                if(Objects.equals(local.getName(), left.get("name"))){
+                    leftType = local.getType().getName();
+                    isLeftArray = local.getType().isArray();
+                    break;
+                }
+            }
+            if(leftType.isEmpty()) {
+                for (var param : table.getParameters(currentMethod)) {
+                    if (Objects.equals(param.getName(), left.get("name"))) {
+                        leftType = param.getType().getName();
+                        isLeftArray = param.getType().isArray();
+                        break;
+                    }
+                }
+                if(leftType.isEmpty()){
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Variable not defined: " + left.get("name"),
+                            null
+                    ));
+                }
+            }
+            if (rightKind.equals("IntegerExpr")) {
+                if (Objects.equals(leftType, "int") && !isLeftArray) {
+                    return null;
+                } else {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Incompatible types: " + leftType + " and " + right.get("value"),
+                            null
+                    ));
+                }
+            }
+            else if (rightKind.equals("IDExpr")){
+                String rightType = "";
+                Boolean isRightArray = false;
+                for(var local : table.getLocalVariables(currentMethod)){
+                    if(Objects.equals(local.getName(), right.get("name"))){
+                        rightType = local.getType().getName();
+                        isRightArray = local.getType().isArray();
+                    }
+                }
+                if(rightType.isEmpty()) {
+                    for (var param : table.getParameters(currentMethod)) {
+                        if (Objects.equals(param.getName(), right.get("name"))) {
+                            rightType = param.getType().getName();
+                            isRightArray = param.getType().isArray();
+                        }
+                    }
+                    if(rightType.isEmpty()){
+                        addReport(Report.newError(
+                                Stage.SEMANTIC,
+                                NodeUtils.getLine(node),
+                                NodeUtils.getColumn(node),
+                                "Variable not defined: " + right.get("name"),
+                                null
+                        ));
+                    }
+                }
+                if(Objects.equals(leftType, rightType) && isLeftArray == isRightArray){
+                    return null;
+                }
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Incompatible types: " + leftType + " and " + rightType,
+                        null
+                ));
+            }
+            else if (rightKind.equals("GetMethod")) {
+                var rightType = table.getReturnType(right.get("value")).getName();
+                if(Objects.equals(leftType, rightType)){
+                    return null;
+                }
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Incompatible types: " + leftType + " and " + rightType,
+                        null
+                ));
+            }
+    }
+        else {
+            addReport(Report.newError(
+                    Stage.SEMANTIC,
+                    NodeUtils.getLine(node),
+                    NodeUtils.getColumn(node),
+                    "Incompatible types: " + leftKind + " and " + rightKind,
+                    null
+            ));
+        }
+        return null;
     }
 
     private Void arrayExpr(JmmNode node, SymbolTable table) {

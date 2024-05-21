@@ -96,7 +96,7 @@ methodDecl locals[boolean isPublic=false, boolean isStatic=false]
 type locals[boolean isArray=false]
     : (value=INT'['']' {$isArray=true;})
     | (value=STRING'['']' {$isArray=true;})
-    | value=INT'...'
+    | value=INT'...' {$isArray=true;}
     | value=BOOL
     | value=INT
     | value=STRING

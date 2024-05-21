@@ -27,7 +27,8 @@ public enum Kind {
     GET_METHOD,
     SEMI_COLON_STMT,
     NEW_I_D,
-    THIS_EXPR;
+    THIS_EXPR,
+    IF_ELSE_STMT;
 
 
     private static final Set<Kind> STATEMENTS = Set.of(I_D_ASSIGN_STMT, RETURN_STMT);
