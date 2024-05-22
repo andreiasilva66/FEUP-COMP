@@ -202,7 +202,7 @@ public class JasminGenerator {
         }
         switch (elementType) {
             case INT32 -> stringBuilder += "I";
-            case BOOLEAN -> stringBuilder += "I";
+            case BOOLEAN -> stringBuilder += "Z";
             case STRING -> stringBuilder += "Ljava/lang/String;";
             case VOID -> stringBuilder += "V";
             case OBJECTREF -> {
