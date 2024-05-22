@@ -150,6 +150,7 @@ public class OllirGeneratorVisitor extends AJmmVisitor<Void, String> {
                     code.append(OptUtils.toOllirType(local.getType()));
                     code.append(SPACE);
                     code.append(expr.getCode());
+                    code.append(END_STMT);
                 }
 
                 if(node.getChild(0).getKind().equals("NewID")){
