@@ -128,7 +128,7 @@ expr
     | value=INTEGER #IntegerExpr
     | value=BOOLEAN #BooleanExpr
     | name=ID #IDExpr
-    | THIS #ThisExpr
+    | name=THIS #ThisExpr
     | LRECT (expr ( COMMA expr)* )? RRECT #List
     ;
 

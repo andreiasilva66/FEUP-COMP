@@ -63,28 +63,49 @@ public class OllirGeneratorVisitor extends AJmmVisitor<Void, String> {
     private String visitGetMethod(JmmNode node, Void unused) {
         StringBuilder code = new StringBuilder();
         var methodName = node.get("value");
-        code.append("invokestatic(");
-        var classMethod = node.getChildren(I_D_EXPR).get(0);
-        code.append(classMethod.get("name"));
-        code.append(", ");
-        code.append("\"");
-        code.append(methodName);
-        code.append("\"");
-        if (node.getChildren(I_D_EXPR).size() == 2) {
-            var varName = node.getChildren(I_D_EXPR).get(1);
+
+
+        if(table.getMethods().stream().anyMatch(method -> method.equals(methodName))){
+            var returnType = table.getReturnType(methodName);
+            var temp = OptUtils.getTemp();
+            code.append(temp);
+            code.append(OptUtils.toOllirType(returnType));
+            code.append(SPACE);
+            code.append(ASSIGN);
+            code.append(OptUtils.toOllirType(returnType));
+            code.append(SPACE);
+            code.append("invokevirtual(");
+            code.append(node.getChild(0).get("name"));
+            code.append(".").append(table.getClassName());
+            code.append(", \"").append(methodName).append("\"");
+            code.append(")").append(OptUtils.toOllirType(returnType));
+            code.append(END_STMT);
+        }
+        else{
+            code.append("invokestatic(");
+            var classMethod = node.getChildren(I_D_EXPR).get(0);
+            code.append(classMethod.get("name"));
             code.append(", ");
-            code.append(varName.get("name"));
-            // get the return type of the variable
-            var locals = table.getLocalVariables(node.getJmmParent().getJmmParent().get("name"));
-            for (var local : locals) {
-                if (local.getName().equals(varName.get("name"))) {
-                    code.append(OptUtils.toOllirType(local.getType()));
+            code.append("\"");
+            code.append(methodName);
+            code.append("\"");
+            if (node.getChildren(I_D_EXPR).size() == 2) {
+                var varName = node.getChildren(I_D_EXPR).get(1);
+                code.append(", ");
+                code.append(varName.get("name"));
+                // get the return type of the variable
+                var locals = table.getLocalVariables(node.getJmmParent().getJmmParent().get("name"));
+                for (var local : locals) {
+                    if (local.getName().equals(varName.get("name"))) {
+                        code.append(OptUtils.toOllirType(local.getType()));
+                    }
                 }
             }
+            code.append(").");
+            code.append("V");
+            code.append(END_STMT);
         }
-        code.append(").");
-        code.append("V");
-        code.append(END_STMT);
+
         return code.toString();
     }
 
