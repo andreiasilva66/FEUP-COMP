@@ -231,10 +231,11 @@ public class TypeCheck extends AnalysisVisitor {
                             "Incompatible types: " + idName + " and " + returnType.getName(),
                             null
                     ));
+                    return false;
                 }
             }
         }
-        return false;
+        return true;
     }
 
     private Void binExpr(JmmNode node, SymbolTable table) {
