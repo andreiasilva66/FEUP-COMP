@@ -63,7 +63,7 @@ public class OllirGeneratorVisitor extends AJmmVisitor<Void, String> {
     private String visitGetMethod(JmmNode node, Void unused) {
         StringBuilder code = new StringBuilder();
         var methodName = node.get("value");
-
+        StringBuilder computation = new StringBuilder();
 
         if(table.getMethods().stream().anyMatch(method -> method.equals(methodName))){
             var returnType = table.getReturnType(methodName);
@@ -82,6 +82,7 @@ public class OllirGeneratorVisitor extends AJmmVisitor<Void, String> {
                 var expr = exprVisitor.visit(node.getChild(i));
                 code.append(", ");
                 code.append(expr.getCode());
+                computation.append(expr.getComputation());
             }
             code.append(")").append(OptUtils.toOllirType(returnType));
             code.append(END_STMT);
@@ -111,7 +112,7 @@ public class OllirGeneratorVisitor extends AJmmVisitor<Void, String> {
             code.append(END_STMT);
         }
 
-        return code.toString();
+        return computation.toString() + code.toString();
     }
 
     private String visitVarDecl(JmmNode node, Void unused) {
