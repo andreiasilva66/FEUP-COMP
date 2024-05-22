@@ -7,6 +7,7 @@ import pt.up.fe.comp.jmm.ast.JmmNode;
 import pt.up.fe.comp2024.ast.NodeUtils;
 import pt.up.fe.comp2024.ast.TypeUtils;
 
+import java.util.List;
 import static pt.up.fe.comp2024.ast.Kind.*;
 
 /**
@@ -106,7 +107,20 @@ public class OllirGeneratorVisitor extends AJmmVisitor<Void, String> {
     }
 
     private String visitImportDecl(JmmNode node, Void unused) {
-        return "import " + node.get("ID") + END_STMT;
+
+        String valueList = node.get("value");
+
+        String[] values = valueList.substring(1, valueList.length() - 1).split(",");
+
+        StringBuilder qualifiedName = new StringBuilder();
+        for (int i = 0; i < values.length; i++) {
+            qualifiedName.append(values[i].trim());
+            if (i < values.length - 1) {
+                qualifiedName.append(".");
+            }
+        }
+
+        return "import " + qualifiedName.toString() + END_STMT;
     }
 
     private String visitAssignStmt(JmmNode node, Void unused) {
