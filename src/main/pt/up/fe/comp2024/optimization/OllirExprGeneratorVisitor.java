@@ -65,7 +65,7 @@ public class OllirExprGeneratorVisitor extends PreorderJmmVisitor<Void, OllirExp
             computation += ", " + visit(node.getChild(i)).getCode();
         }
         computation += ")" + ollirType + END_STMT;
-        code += END_STMT;
+        //code += END_STMT;
         return new OllirExprResult(code, computation);
     }
 
@@ -114,13 +114,24 @@ public class OllirExprGeneratorVisitor extends PreorderJmmVisitor<Void, OllirExp
         String resOllirType = OptUtils.toOllirType(resType);
         StringBuilder code = new StringBuilder();
 
-        code.append(lhs.getCode());
-        code.append(SPACE);
-        code.append(node.get("op"));
+        var temp = OptUtils.getTemp();
+
+        computation.append(temp);
+        computation.append(resOllirType);
+        computation.append(SPACE);
+        computation.append(ASSIGN);
+        computation.append(resOllirType);
+        computation.append(SPACE);
+        computation.append(lhs.getCode());
+        computation.append(SPACE);
+        computation.append(node.get("op"));
+        computation.append(resOllirType);
+        computation.append(SPACE);
+        computation.append(rhs.getCode());
+        computation.append(END_STMT);
+
+        code.append(temp);
         code.append(resOllirType);
-        code.append(SPACE);
-        code.append(rhs.getCode());
-        //code.append(END_STMT);
 
         return new OllirExprResult(code.toString(), computation);
     }
