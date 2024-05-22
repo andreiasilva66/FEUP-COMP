@@ -78,6 +78,11 @@ public class OllirGeneratorVisitor extends AJmmVisitor<Void, String> {
             code.append(node.getChild(0).get("name"));
             code.append(".").append(table.getClassName());
             code.append(", \"").append(methodName).append("\"");
+            for(int i = 1; i < node.getNumChildren(); i++){
+                var expr = exprVisitor.visit(node.getChild(i));
+                code.append(", ");
+                code.append(expr.getCode());
+            }
             code.append(")").append(OptUtils.toOllirType(returnType));
             code.append(END_STMT);
         }
