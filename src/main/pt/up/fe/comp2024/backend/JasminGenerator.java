@@ -36,7 +36,6 @@ public class JasminGenerator {
     public JasminGenerator(OllirResult ollirResult) {
         this.ollirResult = ollirResult;
 
-        System.out.println(ollirResult.getOllirCode());
 
         try {
             ollirResult.getOllirClass().checkMethodLabels();
@@ -90,7 +89,6 @@ public class JasminGenerator {
 
         // generate class name
         var className = ollirResult.getOllirClass().getClassName();
-        System.out.println("Modifier: " + classUnit.getClassAccessModifier());
         code.append(".class ")
                 .append(classModifier)
                 .append(className)
@@ -178,12 +176,13 @@ public class JasminGenerator {
         code.append(TAB).append(".limit locals 99").append(NL);
 
         for (var inst : method.getInstructions()) {
-            //System.out.println(inst);
+            //System.out.println("Pre: " + inst);
             var instCode = StringLines.getLines(generators.apply(inst)).stream()
                     .collect(Collectors.joining(NL + TAB, TAB, NL));
             if((inst instanceof CallInstruction) && (((CallInstruction) inst).getReturnType().getTypeOfElement() == ElementType.VOID) && ((CallInstruction) inst).getInvocationType().equals(CallType.invokespecial)){
                 instCode += TAB + "pop\n";
             }
+            //System.out.println("Post: " + instCode);
             code.append(instCode);
         }
 
@@ -224,21 +223,23 @@ public class JasminGenerator {
         var rhs = assign.getRhs();
         code.append(generators.apply(rhs));
         // store value in the stack in destination
-
+        System.out.println("here: " + assign.getTypeOfAssign());
         //if ((assign.getRhs() instanceof CallInstruction)) return code.toString();
         var lhs = assign.getDest();
         var operand = (Operand) lhs;
         // get register
         var reg = currentMethod.getVarTable().get(operand.getName()).getVirtualReg();
+        String vreg;
+        if(reg > 3) vreg = " " + reg + NL; else vreg = "_" + reg + NL;
         var ret = switch (operand.getType().getTypeOfElement()) {
-            case INT32 -> "istore ";
-            case BOOLEAN -> "istore ";
-            case OBJECTREF -> "astore ";
-            case ARRAYREF -> "astore ";
+            case INT32 -> "istore";
+            case BOOLEAN -> "istore";
+            case OBJECTREF -> "astore";
+            case ARRAYREF -> "astore";
             default -> throw new NotImplementedException(operand.getType().getTypeOfElement());
         };
-        // TODO: Only accepts int and bool
-        code.append(ret).append(reg).append(NL);
+
+        code.append(ret).append(vreg);
 
         return code.toString();
     }
@@ -267,26 +268,31 @@ public class JasminGenerator {
 
     private String generateOperand(Operand operand) {
         // get register
+        var code = new StringBuilder();
+        System.out.println("this: " + operand.getName());
         var reg = currentMethod.getVarTable().get(operand.getName()).getVirtualReg();
-        System.out.println(operand);
+        String vreg;
+        if(reg > 3) vreg = " " + reg + NL; else vreg = "_" + reg + NL;
+
         switch (operand.getType().getTypeOfElement()) {
             case INT32 -> {
-                return "iload " + reg + NL;
+                code.append("iload").append(vreg);
             }
             case BOOLEAN -> {
-                return "iload " + reg + NL;
+                code.append("iload").append(vreg);
             }
             case OBJECTREF -> {
-                return "aload " + reg + NL;
+                code.append("aload").append(vreg);
             }
             case ARRAYREF -> {
-                return "aload " + reg + NL;
+                code.append("aload").append(vreg);
             }
             case THIS -> {
                 return "aload_0" + NL;
             }
             default -> throw new NotImplementedException(operand.getType().getTypeOfElement());
         }
+        return code.toString();
     }
 
     private String generateBinaryOp(BinaryOpInstruction binaryOp) {
@@ -334,34 +340,47 @@ public class JasminGenerator {
         var call = new StringBuilder();
         CallType callType = callInstruction.getInvocationType();
         String methodName = "";
-        if(!callType.equals(CallType.NEW)){
+        boolean isInvoke = !(callType.equals(CallType.NEW) || callType.equals(CallType.arraylength));
+
+        if(isInvoke){
             methodName = (((LiteralElement) callInstruction.getMethodName()).getLiteral()).replace("\"", "");
         }
-        var firstOperand = callInstruction.getOperands().get(0);
+
         switch (callType) {
             case invokestatic: {
-                String className = ((Operand) firstOperand).getName();
+                String className = ((Operand) callInstruction.getOperands().get(0)).getName();
                 call.append("invokestatic ").append(className).append("/").append(methodName);
                 break;
             }
             case invokespecial: {
-                String superClass = ((ClassType) firstOperand.getType()).getName();
+                String superClass = ((ClassType) callInstruction.getOperands().get(0).getType()).getName();
                 call.append("invokespecial ").append(superClass).append("/").append(methodName);
                 break;
             }
             case invokevirtual: {
-                String objectRef = ((ClassType) firstOperand.getType()).getName();
+                String objectRef = ((ClassType) callInstruction.getOperands().get(0).getType()).getName();
                 call.append("invokevirtual ").append(objectRef).append("/").append(methodName);
                 break;
             }
             case NEW: {
-                String className = this.getObjClass(((Operand)firstOperand).getName());
-                call.append("new ").append(className).append("\ndup\n");
+                if (callInstruction.getOperands().get(0).getType().getTypeOfElement().equals(ElementType.OBJECTREF)) {
+                    String className = this.getObjClass(((Operand)callInstruction.getOperands().get(0)).getName());
+                    call.append("new ").append(className).append("\ndup\n");
+                    break;
+                } else if (callInstruction.getOperands().get(0).getType().getTypeOfElement().equals(ElementType.ARRAYREF)){
+                    call.append(generators.apply(callInstruction.getOperands().get(1))) .append("newarray int\n");
+                    break;
+                }
+
+            }
+            case arraylength: {
+                System.out.println(callInstruction.getOperands().get(0).getType().getTypeOfElement());
+                call.append(generators.apply(callInstruction.getOperands().get(0))).append("arraylenght\n");
                 break;
             }
         }
 
-        if(!callType.equals(CallType.NEW)) {
+        if(isInvoke) {
             StringBuilder param = new StringBuilder();
             for (var operand : callInstruction.getOperands()) {
                 Boolean cond1 = operand.equals(callInstruction.getOperands().get(0)) && callType.equals(CallType.invokestatic);
@@ -399,8 +418,8 @@ public class JasminGenerator {
         code.append(generators.apply(value));
 
         code.append("putfield ")
-                .append(ollirResult.getOllirClass().getClassName() + "/")
-                .append(field.getName() + " ")
+                .append(ollirResult.getOllirClass().getClassName()).append("/")
+                .append(field.getName()).append(" ")
                 .append(myGetType(field.getType())).append(NL);
         return code.toString();
     }
@@ -414,8 +433,8 @@ public class JasminGenerator {
         code.append(generators.apply(object));
 
         code.append("getfield ")
-                .append(ollirResult.getOllirClass().getClassName() + "/")
-                .append(field.getName() + " ")
+                .append(ollirResult.getOllirClass().getClassName()).append("/")
+                .append(field.getName()).append(" ")
                 .append(myGetType(field.getType())).append(NL);
         return code.toString();
     }
