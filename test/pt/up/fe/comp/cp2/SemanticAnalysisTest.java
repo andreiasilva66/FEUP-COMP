@@ -173,4 +173,26 @@ public class SemanticAnalysisTest {
         TestUtils.mustFail(result);
         System.out.println(result.getReports());
     }
+
+    @Test
+    public void miscLengthAsNameOk() {
+        var result = TestUtils
+                .analyse(SpecsIo.getResource("pt/up/fe/comp/cp2/semanticanalysis/MiscLengthAsNameOk.jmm"));
+        TestUtils.noErrors(result);
+    }
+
+    @Test
+    public void mainEverywhereOk() {
+        var result = TestUtils
+                .analyse(SpecsIo.getResource("pt/up/fe/comp/cp2/semanticanalysis/MainEverywhereOk.jmm"));
+        TestUtils.noErrors(result);
+    }
+
+    @Test
+    public void fieldStaticInvalid() {
+        var result = TestUtils
+                .analyse(SpecsIo.getResource("pt/up/fe/comp/cp2/semanticanalysis/FieldStaticInvalid.jmm"));
+        TestUtils.mustFail(result);
+        System.out.println(result.getReports());
+    }
 }

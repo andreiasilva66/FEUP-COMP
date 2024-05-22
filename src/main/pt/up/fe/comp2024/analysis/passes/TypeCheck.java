@@ -1,6 +1,8 @@
 package pt.up.fe.comp2024.analysis.passes;
 
+import pt.up.fe.comp.jmm.analysis.table.Symbol;
 import pt.up.fe.comp.jmm.analysis.table.SymbolTable;
+import pt.up.fe.comp.jmm.analysis.table.Type;
 import pt.up.fe.comp.jmm.ast.JmmNode;
 import pt.up.fe.comp.jmm.report.Report;
 import pt.up.fe.comp.jmm.report.Stage;
@@ -8,10 +10,10 @@ import pt.up.fe.comp2024.analysis.AnalysisVisitor;
 import pt.up.fe.comp2024.ast.Kind;
 import pt.up.fe.comp2024.ast.NodeUtils;
 
+import java.util.List;
 import java.util.Objects;
 
 import static pt.up.fe.comp2024.ast.Kind.I_D_EXPR;
-import static pt.up.fe.comp2024.ast.Kind.PARAM;
 
 public class TypeCheck extends AnalysisVisitor {
 
@@ -25,6 +27,116 @@ public class TypeCheck extends AnalysisVisitor {
         addVisit(Kind.BINARY_EXPR, this::binExpr);
         addVisit(Kind.RETURN_STMT, this::returnStmt);
         addVisit(Kind.IF_ELSE_STMT, this::ifElseStmt);
+        addVisit(Kind.VAR_DECL, this::varDecl);
+    }
+
+    private Void varDecl(JmmNode node, SymbolTable table) {
+        var name = node.get("name");
+        var returntype = node.getParent().getChild(0);
+        var checkArray = node.getChild(0).get("isArray");
+        var value = node.getChild(0).get("value");
+        var assignStmts = node.getParent().getChildren(Kind.I_D_ASSIGN_STMT);
+        for (var stmt : assignStmts) {
+            var stmtname = stmt.get("name");
+            if (Objects.equals(stmtname, name) && Objects.equals(value, "boolean") && Objects.equals(stmt.getChild(0).isInstance(Kind.INTEGER_EXPR), true)) {
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Can't assign int to bool: " + value + " and " + stmt.getChild(0),
+                        null
+                ));
+            }
+            if (Objects.equals(stmtname, name) && (Objects.equals(value, "int") || Objects.equals(value, "float")) && Objects.equals(stmt.getChild(0).isInstance(Kind.BOOLEAN_EXPR), true)) {
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Can't assign bool to int: " + value + " and " + stmt.getChild(0),
+                        null
+                ));
+            }
+            var children = stmt.getChildren();
+            var id = children.get(0);
+            if (returntype.getChild(0).get("isArray").equals("false") && Objects.equals(id.toString(), "List")) {
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Can't initiate an array when it does not exist: " + node.getChildren(Kind.TYPE),
+                        null
+                ));
+            }
+            if (Objects.equals(id.toString(), "List")) {
+                var child = id.getChildren();
+                var firstExpr = child.get(0);
+                for (var c : child) {
+                    if (c.getKind().equals(firstExpr.getKind())) {
+                        continue;
+                    } else {
+                        addReport(Report.newError(
+                                Stage.SEMANTIC,
+                                NodeUtils.getLine(node),
+                                NodeUtils.getColumn(node),
+                                "Different types: " + firstExpr + " and " + c,
+                                null
+                        ));
+                    }
+                }
+            }
+            else if (Objects.equals(stmtname, name) && Objects.equals(stmt.getChild(0).isInstance(I_D_EXPR), true)){
+                var idname = id.get("name");
+                var assigns = node.getParent().getChildren(Kind.VAR_DECL);
+                for (var assign : assigns){
+                    if( Objects.equals(idname, assign.get("name"))){
+                        var assignType = assign.getChild(0);
+                        var imports = table.getImports();
+                        boolean varIsImported = false;
+                        boolean assignIsImported = false;
+                        for( var imp : imports){
+                            if(Objects.equals(imp, assignType.get("value"))) {
+                                assignIsImported = true;
+                            }
+                            if(Objects.equals(imp, node.getChild(0).get("value"))){
+                                varIsImported = true;
+                            }
+                        }
+                        if(varIsImported && assignIsImported){
+                            continue;
+                        }
+                        if((Objects.equals(assignType.get("value"), table.getClassName()) && Objects.equals(node.getChild(0).get("value"), table.getSuper())) || (Objects.equals(assignType.get("value"), table.getSuper()) && Objects.equals(node.getChild(0).get("value"), table.getClassName()))){
+                            continue;
+                        }
+                        if(!Objects.equals(assignType, node.getChild(0))){
+                            addReport(Report.newError(
+                                    Stage.SEMANTIC,
+                                    NodeUtils.getLine(node),
+                                    NodeUtils.getColumn(node),
+                                    "Incompatible types: " + assignType + " and " + node.getChild(0),
+                                    null
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        var whileStmts = node.getParent().getChildren(Kind.WHILE_STMT);
+        for (var whileStmt : whileStmts) {
+            var idExprs = whileStmt.getChildren(I_D_EXPR);
+            for (var idexpr : idExprs) {
+                var idname = idexpr.get("name");
+                if (Objects.equals(name, idname) && checkArray.equals("true")) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Can't do a while statement with array: " + node.getChildren(Kind.TYPE),
+                            null
+                    ));
+                }
+            }
+        }
+        return null;
     }
 
     private Void ifElseStmt(JmmNode node, SymbolTable table){
@@ -52,41 +164,12 @@ public class TypeCheck extends AnalysisVisitor {
         if (returnType.getName().equals("boolean") && returnExpr.getKind().equals("BooleanExpr")) {
             return null;
         }
-        if(returnExpr.getKind().equals("IDExpr")){
+        if (returnExpr.getKind().equals("IDExpr")) {
             var idName = returnExpr.get("name");
             var locals = table.getLocalVariables(currentMethod);
             var params = table.getParameters(currentMethod);
-            for (var param : params) {
-                if (Objects.equals(param.getName(), idName)){
-                    if (Objects.equals(param.getType().getName(), returnType.getName()) && Objects.equals(param.getType().isArray(), returnType.isArray())) {
-                        return null;
-                    }
-                    else {
-                        addReport(Report.newError(
-                                Stage.SEMANTIC,
-                                NodeUtils.getLine(node),
-                                NodeUtils.getColumn(node),
-                                "Incompatible types: " + idName + " and " + returnType.getName(),
-                                null
-                        ));
-                    }
-                }
-            }
-            for (var local : locals) {
-                if (Objects.equals(local.getName(), idName)){
-                    if(Objects.equals(local.getType().getName(), returnType.getName()) && Objects.equals(local.getType().isArray(), returnType.isArray())){
-                        return null;
-                    }
-                    else
-                        addReport(Report.newError(
-                                Stage.SEMANTIC,
-                                NodeUtils.getLine(node),
-                                NodeUtils.getColumn(node),
-                                "Incompatible types: " + idName + " and " + returnType.getName(),
-                                null
-                        ));
-                }
-            }
+            if (checkIncompatibleTypesIdExpr(node, returnType, idName, params)) return null;
+            if (checkIncompatibleTypesIdExpr(node, returnType, idName, locals)) return null;
             addReport(Report.newError(
                     Stage.SEMANTIC,
                     NodeUtils.getLine(node),
@@ -134,6 +217,26 @@ public class TypeCheck extends AnalysisVisitor {
     return null;
     }
 
+    private boolean checkIncompatibleTypesIdExpr(JmmNode node, Type returnType, String idName, List<Symbol> params) {
+        for (var param : params) {
+            if (Objects.equals(param.getName(), idName)){
+                if (Objects.equals(param.getType().getName(), returnType.getName()) && Objects.equals(param.getType().isArray(), returnType.isArray())) {
+                    return true;
+                }
+                else {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Incompatible types: " + idName + " and " + returnType.getName(),
+                            null
+                    ));
+                }
+            }
+        }
+        return false;
+    }
+
     private Void binExpr(JmmNode node, SymbolTable table) {
         var left = node.getChild(0);
         var right = node.getChild(1);
@@ -143,7 +246,7 @@ public class TypeCheck extends AnalysisVisitor {
             return null;
         } else if (leftKind.equals("IDExpr")){
             String leftType = "";
-            Boolean isLeftArray = false;
+            boolean isLeftArray = false;
             for(var local : table.getLocalVariables(currentMethod)){
                 if(Objects.equals(local.getName(), left.get("name"))){
                     leftType = local.getType().getName();
@@ -169,22 +272,9 @@ public class TypeCheck extends AnalysisVisitor {
                     ));
                 }
             }
-            if (rightKind.equals("IntegerExpr")) {
-                if (Objects.equals(leftType, "int") && !isLeftArray) {
-                    return null;
-                } else {
-                    addReport(Report.newError(
-                            Stage.SEMANTIC,
-                            NodeUtils.getLine(node),
-                            NodeUtils.getColumn(node),
-                            "Incompatible types: " + leftType + " and " + right.get("value"),
-                            null
-                    ));
-                }
-            }
-            else if (rightKind.equals("IDExpr")){
+            if (rightKind.equals("IDExpr")){
                 String rightType = "";
-                Boolean isRightArray = false;
+                boolean isRightArray = false;
                 for(var local : table.getLocalVariables(currentMethod)){
                     if(Objects.equals(local.getName(), right.get("name"))){
                         rightType = local.getType().getName();
@@ -219,20 +309,10 @@ public class TypeCheck extends AnalysisVisitor {
                         null
                 ));
             }
-            else if (rightKind.equals("GetMethod")) {
-                var rightType = table.getReturnType(right.get("value")).getName();
-                if(Objects.equals(leftType, rightType)){
-                    return null;
-                }
-                addReport(Report.newError(
-                        Stage.SEMANTIC,
-                        NodeUtils.getLine(node),
-                        NodeUtils.getColumn(node),
-                        "Incompatible types: " + leftType + " and " + rightType,
-                        null
-                ));
+            else {
+                if (checkOperandTypes(node, table, right, rightKind, leftType)) return null;
             }
-    }
+        }
         else {
             addReport(Report.newError(
                     Stage.SEMANTIC,
@@ -243,6 +323,23 @@ public class TypeCheck extends AnalysisVisitor {
             ));
         }
         return null;
+    }
+
+    private boolean checkOperandTypes(JmmNode node, SymbolTable table, JmmNode right, String rightKind, String leftType) {
+        if (rightKind.equals("GetMethod")) {
+            var rightType = table.getReturnType(right.get("value")).getName();
+            if(Objects.equals(leftType, rightType)){
+                return true;
+            }
+            addReport(Report.newError(
+                    Stage.SEMANTIC,
+                    NodeUtils.getLine(node),
+                    NodeUtils.getColumn(node),
+                    "Incompatible types: " + leftType + " and " + rightType,
+                    null
+            ));
+        }
+        return false;
     }
 
     private Void arrayExpr(JmmNode node, SymbolTable table) {
@@ -290,8 +387,8 @@ public class TypeCheck extends AnalysisVisitor {
         for (var param : params) {
             if (Objects.equals(param.getName(), left.get("name")) && Objects.equals(param.getType().getName(), "int") && right.getKind().equals("ThisExpr")) {
                 var methods = table.getMethods();
-                if (methods.contains(node.getJmmParent().get("value"))) {
-                    var retType = table.getReturnType(node.getJmmParent().get("value"));
+                if (methods.contains(node.getParent().get("value"))) {
+                    var retType = table.getReturnType(node.getParent().get("value"));
                     if (retType.getName().equals("int")) {
                         return null;
                     }
@@ -338,20 +435,7 @@ public class TypeCheck extends AnalysisVisitor {
                     ));
                 }
             }
-            if (rightKind.equals("IntegerExpr")) {
-                if (Objects.equals(leftType, "int")) {
-                    return null;
-                } else {
-                    addReport(Report.newError(
-                            Stage.SEMANTIC,
-                            NodeUtils.getLine(node),
-                            NodeUtils.getColumn(node),
-                            "Incompatible types: " + leftType + " and " + right.get("value"),
-                            null
-                    ));
-                }
-            }
-            else if (rightKind.equals("IDExpr")){
+            if (rightKind.equals("IDExpr")){
                 String rightType = "";
                 for(var local : locals){
                     if(Objects.equals(local.getName(), right.get("name"))){
@@ -385,19 +469,7 @@ public class TypeCheck extends AnalysisVisitor {
                         null
                 ));
             }
-            else if (rightKind.equals("GetMethod")) {
-                var rightType = table.getReturnType(right.get("value")).getName();
-                if(Objects.equals(leftType, rightType)){
-                    return null;
-                }
-                addReport(Report.newError(
-                        Stage.SEMANTIC,
-                        NodeUtils.getLine(node),
-                        NodeUtils.getColumn(node),
-                        "Incompatible types: " + leftType + " and " + rightType,
-                        null
-                ));
-            }
+            else if (checkOperandTypes(node, table, right, rightKind, leftType)) return null;
 
         } else {
             addReport(Report.newError(
@@ -429,119 +501,6 @@ public class TypeCheck extends AnalysisVisitor {
                 }
             }
         }
-        var returntype = node.getChild(0);
-        var vardecls = node.getChildren(Kind.VAR_DECL);
-        for (var varDecl : vardecls) {
-            var name = varDecl.get("name");
-            var checkArray = varDecl.getChild(0).get("isArray");
-            var value = varDecl.getChild(0).get("value");
-            var assignstmt = node.getChildren(Kind.I_D_ASSIGN_STMT);
-            for (var stmt : assignstmt) {
-                var stmtname = stmt.get("name");
-                if (Objects.equals(stmtname, name) && Objects.equals(value, "boolean") && Objects.equals(stmt.getChild(0).isInstance(Kind.INTEGER_EXPR), true)) {
-                    addReport(Report.newError(
-                            Stage.SEMANTIC,
-                            NodeUtils.getLine(node),
-                            NodeUtils.getColumn(node),
-                            "Can't assign int to bool: " + value + " and " + stmt.getChild(0),
-                            null
-                    ));
-                }
-                if (Objects.equals(stmtname, name) && (Objects.equals(value, "int") || Objects.equals(value, "float")) && Objects.equals(stmt.getChild(0).isInstance(Kind.BOOLEAN_EXPR), true)) {
-                    addReport(Report.newError(
-                            Stage.SEMANTIC,
-                            NodeUtils.getLine(node),
-                            NodeUtils.getColumn(node),
-                            "Can't assign bool to int: " + value + " and " + stmt.getChild(0),
-                            null
-                    ));
-                }
-                else if (Objects.equals(stmtname, name) && Objects.equals(stmt.getChild(0).isInstance(I_D_EXPR), true)){
-                    var idexpr = stmt.getChild(0);
-                    var idname = idexpr.get("name");
-                    var assigns = node.getChildren(Kind.VAR_DECL);
-                    for (var assign : assigns){
-                        if( Objects.equals(idname, assign.get("name"))){
-                            var assignType = assign.getChild(0);
-                            var imports = table.getImports();
-                            Boolean varIsImported = false;
-                            Boolean assignIsImported = false;
-                            for( var imp : imports){
-                                if(Objects.equals(imp, assignType.get("value"))) {
-                                    assignIsImported = true;
-                                }
-                                if(Objects.equals(imp, varDecl.getChild(0).get("value"))){
-                                    varIsImported = true;
-                                }
-                            }
-                            if(varIsImported && assignIsImported){
-                                continue;
-                            }
-                            if((Objects.equals(assignType.get("value"), table.getClassName()) && Objects.equals(varDecl.getChild(0).get("value"), table.getSuper())) || (Objects.equals(assignType.get("value"), table.getSuper()) && Objects.equals(varDecl.getChild(0).get("value"), table.getClassName()))){
-                                continue;
-                            }
-                            if(!Objects.equals(assignType, varDecl.getChild(0))){
-                                addReport(Report.newError(
-                                        Stage.SEMANTIC,
-                                        NodeUtils.getLine(node),
-                                        NodeUtils.getColumn(node),
-                                        "Incompatible types: " + assignType + " and " + varDecl.getChild(0),
-                                        null
-                                ));
-                            }
-                        }
-                    }
-                }
-            }
-            var whilestmts = node.getChildren(Kind.WHILE_STMT);
-            for (var whileStmt : whilestmts) {
-                var idexprs = whileStmt.getChildren(I_D_EXPR);
-                for (var idexpr : idexprs) {
-                    var idname = idexpr.get("name");
-                    if (Objects.equals(name, idname) && checkArray.equals("true")) {
-                        addReport(Report.newError(
-                                Stage.SEMANTIC,
-                                NodeUtils.getLine(node),
-                                NodeUtils.getColumn(node),
-                                "Can't do a while statement with array: " + node.getChildren(Kind.TYPE),
-                                null
-                        ));
-                    }
-                }
-            }
-        }
-        var assignstmt = node.getChildren(Kind.I_D_ASSIGN_STMT);
-        for (var stmt : assignstmt) {
-            var children = stmt.getChildren();
-            var id = children.get(0);
-            if (returntype.getChild(0).get("isArray").equals("false") && Objects.equals(id.toString(), "List")) {
-                addReport(Report.newError(
-                        Stage.SEMANTIC,
-                        NodeUtils.getLine(node),
-                        NodeUtils.getColumn(node),
-                        "Can't initiate an array when it does not exist: " + node.getChildren(Kind.TYPE),
-                        null
-                ));
-            }
-            if (Objects.equals(id.toString(), "List")) {
-                var child = id.getChildren();
-                var firstExpr = child.get(0);
-                for (var c : child) {
-                    if (c.getKind().equals(firstExpr.getKind())) {
-                        continue;
-                    } else {
-                        addReport(Report.newError(
-                                Stage.SEMANTIC,
-                                NodeUtils.getLine(node),
-                                NodeUtils.getColumn(node),
-                                "Different types: " + firstExpr + " and " + c,
-                                null
-                        ));
-                    }
-                }
-            }
-        }
-
         return null;
     }
 

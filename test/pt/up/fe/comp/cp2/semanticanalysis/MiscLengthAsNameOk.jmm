@@ -1,0 +1,7 @@
+class LengthAsNameOk {
+
+    public int length() {
+        return 0;
+    }
+
+}

@@ -1,0 +1,12 @@
+class MainEverywhereOk {
+
+    public int lol() {
+        int main;
+        main = 42;
+        return main;
+    }
+
+    public static void main(String[] args) {
+
+    }
+}

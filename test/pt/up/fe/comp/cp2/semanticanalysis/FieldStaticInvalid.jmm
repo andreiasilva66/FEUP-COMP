@@ -1,0 +1,10 @@
+class FieldStaticInvalid {
+
+    static int x;
+    x = 2;
+
+    static void main(String[] args) {
+        System.out.println(x);
+    }
+
+}
