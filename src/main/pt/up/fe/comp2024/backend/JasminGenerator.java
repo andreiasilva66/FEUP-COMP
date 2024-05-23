@@ -223,7 +223,6 @@ public class JasminGenerator {
         var rhs = assign.getRhs();
         code.append(generators.apply(rhs));
         // store value in the stack in destination
-        System.out.println("here: " + assign.getTypeOfAssign());
         //if ((assign.getRhs() instanceof CallInstruction)) return code.toString();
         var lhs = assign.getDest();
         var operand = (Operand) lhs;
@@ -269,7 +268,6 @@ public class JasminGenerator {
     private String generateOperand(Operand operand) {
         // get register
         var code = new StringBuilder();
-        System.out.println("this: " + operand.getName());
         var reg = currentMethod.getVarTable().get(operand.getName()).getVirtualReg();
         String vreg;
         if(reg > 3) vreg = " " + reg + NL; else vreg = "_" + reg + NL;
@@ -349,17 +347,17 @@ public class JasminGenerator {
         switch (callType) {
             case invokestatic: {
                 String className = ((Operand) callInstruction.getOperands().get(0)).getName();
-                call.append("invokestatic ").append(className).append("/").append(methodName);
+                call.append("invokestatic ").append(getObjClass(className)).append("/").append(methodName);
                 break;
             }
             case invokespecial: {
                 String superClass = ((ClassType) callInstruction.getOperands().get(0).getType()).getName();
-                call.append("invokespecial ").append(superClass).append("/").append(methodName);
+                call.append("invokespecial ").append(getObjClass(superClass)).append("/").append(methodName);
                 break;
             }
             case invokevirtual: {
                 String objectRef = ((ClassType) callInstruction.getOperands().get(0).getType()).getName();
-                call.append("invokevirtual ").append(objectRef).append("/").append(methodName);
+                call.append("invokevirtual ").append(getObjClass(objectRef)).append("/").append(methodName);
                 break;
             }
             case NEW: {
