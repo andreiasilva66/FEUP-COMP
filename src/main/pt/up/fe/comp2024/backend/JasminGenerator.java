@@ -347,17 +347,17 @@ public class JasminGenerator {
         switch (callType) {
             case invokestatic: {
                 String className = ((Operand) callInstruction.getOperands().get(0)).getName();
-                call.append("invokestatic ").append(className).append("/").append(methodName);
+                call.append("invokestatic ").append(getObjClass(className)).append("/").append(methodName);
                 break;
             }
             case invokespecial: {
                 String superClass = ((ClassType) callInstruction.getOperands().get(0).getType()).getName();
-                call.append("invokespecial ").append(superClass).append("/").append(methodName);
+                call.append("invokespecial ").append(getObjClass(superClass)).append("/").append(methodName);
                 break;
             }
             case invokevirtual: {
                 String objectRef = ((ClassType) callInstruction.getOperands().get(0).getType()).getName();
-                call.append("invokevirtual ").append(objectRef).append("/").append(methodName);
+                call.append("invokevirtual ").append(getObjClass(objectRef)).append("/").append(methodName);
                 break;
             }
             case NEW: {
