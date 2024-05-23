@@ -65,6 +65,7 @@ classDecl
 
 varDecl
     : type name=ID SEMI
+    | type name='length' SEMI
     | type name=ID LRECT RRECT SEMI
     ;
 
@@ -78,6 +79,7 @@ returnStmt
 
 param
     : type name=ID
+    | type name='length'
     ;
 
 methodDecl locals[boolean isPublic=false, boolean isStatic=false]
@@ -107,6 +109,7 @@ stmt
     | WHILE LPAREN expr RPAREN stmt #WhileStmt
     | expr SEMI #SemiColonStmt
     | name=ID EQUALS value=expr SEMI #IDAssignStmt
+    | name='length' EQUALS value=expr SEMI #IDAssignStmt
     | name=ID LRECT expr RRECT EQUALS expr SEMI #IDCurlyAssignStmt
     ;
 
@@ -116,7 +119,7 @@ expr
     | NOT expr #NotExpr
     | NEW INT LRECT expr RRECT #NewInt //
     | NEW value=ID LPAREN RPAREN #NewID
-    | expr DOT value=ID #GetLength
+    | expr DOT 'length' #GetLength
     | expr DOT value=ID LPAREN ( expr ( COMMA expr )* )? RPAREN #GetMethod
     | expr op= (MUL | DIV) expr #BinaryExpr //
     | expr op= (ADD | SUB) expr #BinaryExpr //
@@ -125,6 +128,7 @@ expr
     | value=INTEGER #IntegerExpr
     | value=BOOLEAN #BooleanExpr
     | name=ID #IDExpr
+    | name='length' #IDExpr
     | name=THIS #ThisExpr
     | LRECT (expr ( COMMA expr)* )? RRECT #List
     ;

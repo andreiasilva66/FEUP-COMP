@@ -1,0 +1,11 @@
+class MethodCallSimpleOk {
+
+    public static void main(String[] args) {
+        System.out.println(new MethodCallSimpleOk.foo());
+    }
+
+    public int foo() {
+        return 1;
+    }
+
+}

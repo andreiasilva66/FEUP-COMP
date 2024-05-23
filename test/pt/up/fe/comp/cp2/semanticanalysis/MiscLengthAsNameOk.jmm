@@ -1,7 +1,11 @@
 class LengthAsNameOk {
 
-    public int length() {
-        return 0;
+    public int foo() {
+        int length;
+
+        length = 1;
+
+        return length;
     }
 
 }
