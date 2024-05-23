@@ -372,7 +372,7 @@ public class JasminGenerator {
             String methodName = (((LiteralElement) callInstruction.getMethodName()).getLiteral()).replace("\"", "");
             System.out.println(callInstruction.getOperands());
             call.append(callType.name()).append(" ")
-                    .append(getObjClass(ref)).append("/").append(methodName);
+                    .append(ref).append("/").append(methodName);
 
             StringBuilder param = new StringBuilder();
             for (var operand : callInstruction.getOperands()) {
@@ -391,7 +391,6 @@ public class JasminGenerator {
                     .append(")")
                     .append(myGetType(callInstruction.getReturnType())).append(NL);
 
-        if(methodName.equals("<init>")) call.append(generators.apply(firstElement));
         }
         return code.append(call.toString()).toString();
     }
