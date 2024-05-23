@@ -4,13 +4,10 @@ import aed;
 class TestClass extends AED{
 
     public static void main(String[] args) {
-        TestClass t;
-        t.add();
     }
 
     public int foo() {
         int a;
-        int[] b;
-        a = b[0];
+        a = 1 + 2 + 3;
     }
 }

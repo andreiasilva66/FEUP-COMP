@@ -28,7 +28,8 @@ public enum Kind {
     SEMI_COLON_STMT,
     NEW_I_D,
     THIS_EXPR,
-    IF_ELSE_STMT;
+    IF_ELSE_STMT,
+    BINARY_BOOL_EXPR;
 
 
     private static final Set<Kind> STATEMENTS = Set.of(I_D_ASSIGN_STMT, RETURN_STMT);

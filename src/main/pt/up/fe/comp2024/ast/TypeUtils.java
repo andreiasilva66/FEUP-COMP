@@ -45,6 +45,8 @@ public class TypeUtils {
             case INTEGER_EXPR -> new Type(INT_TYPE_NAME, false);
             case BOOLEAN_EXPR -> new Type("boolean", false);
             case GET_METHOD -> table.getReturnType(expr.get("name"));
+            case BINARY_BOOL_EXPR -> new Type("boolean", false);
+
             default -> throw new UnsupportedOperationException("Can't compute type for expression kind '" + kind + "'");
         };
 
@@ -57,7 +59,7 @@ public class TypeUtils {
         String operator = binaryExpr.get("op");
 
         return switch (operator) {
-            case "+", "*" -> new Type(INT_TYPE_NAME, false);
+            case "+", "-", "/", "*" -> new Type(INT_TYPE_NAME, false);
             default ->
                     throw new RuntimeException("Unknown operator '" + operator + "' of expression '" + binaryExpr + "'");
         };
