@@ -336,52 +336,54 @@ public class JasminGenerator {
     private String generateCall(CallInstruction callInstruction) {
         var code = new StringBuilder();
         var call = new StringBuilder();
-
         CallType callType = callInstruction.getInvocationType();
-        String ref = "";
+        String methodName = "";
         boolean isInvoke = !(callType.equals(CallType.NEW) || callType.equals(CallType.arraylength));
-        Element firstElement = callInstruction.getOperands().get(0);
+
+        if(isInvoke){
+            methodName = (((LiteralElement) callInstruction.getMethodName()).getLiteral()).replace("\"", "");
+        }
 
         switch (callType) {
             case invokestatic: {
-                ref = ((Operand) firstElement).getName();
+                String className = ((Operand) callInstruction.getOperands().get(0)).getName();
+                call.append("invokestatic ").append(className).append("/").append(methodName);
                 break;
             }
-            case invokespecial:
+            case invokespecial: {
+                String superClass = ((ClassType) callInstruction.getOperands().get(0).getType()).getName();
+                call.append("invokespecial ").append(superClass).append("/").append(methodName);
+                break;
+            }
             case invokevirtual: {
-                ref = ((ClassType) firstElement.getType()).getName();
+                String objectRef = ((ClassType) callInstruction.getOperands().get(0).getType()).getName();
+                call.append("invokevirtual ").append(objectRef).append("/").append(methodName);
                 break;
             }
             case NEW: {
-                if (firstElement.getType().getTypeOfElement().equals(ElementType.OBJECTREF)) {
-                    String className = getObjClass(((Operand)firstElement).getName());
+                if (callInstruction.getOperands().get(0).getType().getTypeOfElement().equals(ElementType.OBJECTREF)) {
+                    String className = this.getObjClass(((Operand)callInstruction.getOperands().get(0)).getName());
                     call.append("new ").append(className).append("\ndup\n");
                     break;
-                } else if (firstElement.getType().getTypeOfElement().equals(ElementType.ARRAYREF)){
+                } else if (callInstruction.getOperands().get(0).getType().getTypeOfElement().equals(ElementType.ARRAYREF)){
                     call.append(generators.apply(callInstruction.getOperands().get(1))) .append("newarray int\n");
                     break;
                 }
+
             }
             case arraylength: {
-                call.append(generators.apply(firstElement)).append("arraylenght\n");
+                System.out.println(callInstruction.getOperands().get(0).getType().getTypeOfElement());
+                call.append(generators.apply(callInstruction.getOperands().get(0))).append("arraylenght\n");
                 break;
             }
         }
 
         if(isInvoke) {
-            String methodName = (((LiteralElement) callInstruction.getMethodName()).getLiteral()).replace("\"", "");
-            System.out.println(callInstruction.getOperands());
-            call.append(callType.name()).append(" ")
-                    .append(ref).append("/").append(methodName);
-
             StringBuilder param = new StringBuilder();
             for (var operand : callInstruction.getOperands()) {
-                System.out.println(operand);
-                if(operand.isLiteral()) continue;
-                if(operand.equals(firstElement)){
-                    System.out.println("hit");
-                    if(callType.equals(CallType.invokestatic)) continue;
-                }
+                Boolean cond1 = operand.equals(callInstruction.getOperands().get(0)) && callType.equals(CallType.invokestatic);
+                Boolean cond2 = operand.equals(callInstruction.getOperands().get(1));
+                if(cond1 || cond2) continue;
                 code.append(generators.apply(operand));
                 param.append(myGetType(operand.getType()));
             }
@@ -390,7 +392,6 @@ public class JasminGenerator {
                     .append(param)
                     .append(")")
                     .append(myGetType(callInstruction.getReturnType())).append(NL);
-
         }
         return code.append(call.toString()).toString();
     }
