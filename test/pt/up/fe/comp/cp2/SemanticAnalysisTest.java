@@ -218,4 +218,20 @@ public class SemanticAnalysisTest {
                 .analyse(SpecsIo.getResource("pt/up/fe/comp/cp2/semanticanalysis/MethodCallSimpleOk.jmm"));
         TestUtils.noErrors(result);
     }
+
+    @Test
+    public void DuplicatedFieldInvalid() {
+        var result = TestUtils
+                .analyse(SpecsIo.getResource("pt/up/fe/comp/cp2/semanticanalysis/DuplicatedFieldInvalid.jmm"));
+        TestUtils.mustFail(result);
+        System.out.println(result.getReports());
+    }
+
+    @Test
+    public void DuplicatedParamInvalid() {
+        var result = TestUtils
+                .analyse(SpecsIo.getResource("pt/up/fe/comp/cp2/semanticanalysis/DuplicatedParamInvalid.jmm"));
+        TestUtils.mustFail(result);
+        System.out.println(result.getReports());
+    }
 }

@@ -20,8 +20,8 @@ public class TypeCheck extends AnalysisVisitor {
     private String currentMethod;
 
     public void buildVisitor() {
+        addVisit(Kind.CLASS_DECL, this::classDecl);
         addVisit(Kind.BINARY_EXPR, this::binTypes);
-        addVisit(Kind.METHOD_DECL, this::duplicatedFields);
         addVisit(Kind.METHOD_DECL, this::listTypes);
         addVisit(Kind.GET_METHOD, this::getMethod);
         addVisit(Kind.ARRAY_EXPR, this::arrayExpr);
@@ -33,17 +33,17 @@ public class TypeCheck extends AnalysisVisitor {
         addVisit(Kind.I_D_ASSIGN_STMT, this::assignStmt);
     }
 
-    private Void duplicatedFields(JmmNode node, SymbolTable table) {
+    private Void classDecl(JmmNode node, SymbolTable table) {
         var imports = table.getImports();
         // check for duplicated imports
-        for (var imp : imports) {
-            for (var imp2 : imports) {
-                if (!Objects.equals(imp, imp2)) {
+        for (int i = 0; i < imports.size(); i++) {
+            for (int j = i + 1; j < imports.size(); j++) {
+                if (Objects.equals(imports.get(i), imports.get(j))) {
                     addReport(Report.newError(
                             Stage.SEMANTIC,
                             NodeUtils.getLine(node),
                             NodeUtils.getColumn(node),
-                            "Duplicated imports: " + imp + " and " + imp2,
+                            "Duplicated imports: " + imports.get(i) + " and " + imports.get(j),
                             null
                     ));
                 }
@@ -51,14 +51,14 @@ public class TypeCheck extends AnalysisVisitor {
         }
         var fields = table.getFields();
         // check for duplicated fields
-        for (var field : fields) {
-            for (var field2 : fields) {
-                if (!Objects.equals(field.getName(), field2.getName())) {
+        for (int i = 0; i < fields.size(); i++) {
+            for (int j = i + 1; j < fields.size(); j++) {
+                if (Objects.equals(fields.get(i), fields.get(j))) {
                     addReport(Report.newError(
                             Stage.SEMANTIC,
                             NodeUtils.getLine(node),
                             NodeUtils.getColumn(node),
-                            "Duplicated fields: " + field.getName() + " and " + field2.getName(),
+                            "Duplicated fields: " + fields.get(i) + " and " + fields.get(j),
                             null
                     ));
                 }
@@ -66,44 +66,14 @@ public class TypeCheck extends AnalysisVisitor {
         }
         var methods = table.getMethods();
         // check for duplicated methods
-        for (var method : methods) {
-            for (var method2 : methods) {
-                if (!Objects.equals(method, method2)) {
+        for (int i = 0; i < methods.size(); i++) {
+            for (int j = i + 1; j < methods.size(); j++) {
+                if (Objects.equals(methods.get(i), methods.get(j))) {
                     addReport(Report.newError(
                             Stage.SEMANTIC,
                             NodeUtils.getLine(node),
                             NodeUtils.getColumn(node),
-                            "Duplicated methods: " + method + " and " + method2,
-                            null
-                    ));
-                }
-            }
-        }
-        var params = table.getParameters(currentMethod);
-        // check for duplicated parameters
-        for (var param : params) {
-            for (var param2 : params) {
-                if (!Objects.equals(param.getName(), param2.getName())) {
-                    addReport(Report.newError(
-                            Stage.SEMANTIC,
-                            NodeUtils.getLine(node),
-                            NodeUtils.getColumn(node),
-                            "Duplicated parameters: " + param.getName() + " and " + param2.getName(),
-                            null
-                    ));
-                }
-            }
-        }
-        var locals = table.getLocalVariables(currentMethod);
-        // check for duplicated local variables
-        for (var local : locals) {
-            for (var local2 : locals) {
-                if (!Objects.equals(local.getName(), local2.getName())) {
-                    addReport(Report.newError(
-                            Stage.SEMANTIC,
-                            NodeUtils.getLine(node),
-                            NodeUtils.getColumn(node),
-                            "Duplicated local variables: " + local.getName() + " and " + local2.getName(),
+                            "Duplicated methods: " + methods.get(i) + " and " + methods.get(j),
                             null
                     ));
                 }
@@ -641,6 +611,38 @@ public class TypeCheck extends AnalysisVisitor {
                 }
             }
         }
+
+        var params = table.getParameters(currentMethod);
+        // check for duplicated parameters
+        for (int i = 0; i < params.size(); i++) {
+            for (int j = i + 1; j < params.size(); j++) {
+                if (Objects.equals(params.get(i).getName(), params.get(j).getName())) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Duplicated parameters: " + params.get(i).getName() + " and " + params.get(j).getName(),
+                            null
+                    ));
+                }
+            }
+        }
+        var locals = table.getLocalVariables(currentMethod);
+        // check for duplicated local variables
+        for (int i = 0; i < locals.size(); i++) {
+            for (int j = i + 1; j < locals.size(); j++) {
+                if (Objects.equals(locals.get(i).getName(), locals.get(j).getName())) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Duplicated local variables: " + locals.get(i).getName() + " and " + locals.get(j).getName(),
+                            null
+                    ));
+                }
+            }
+        }
+
         return null;
     }
 
