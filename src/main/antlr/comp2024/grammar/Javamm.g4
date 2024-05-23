@@ -123,8 +123,8 @@ expr
     | expr DOT value=ID LPAREN ( expr ( COMMA expr )* )? RPAREN #GetMethod
     | expr op= (MUL | DIV) expr #BinaryExpr //
     | expr op= (ADD | SUB) expr #BinaryExpr //
-    | expr op= LESS expr #BinaryExpr //
-    | expr op= AND expr #BinaryExpr
+    | expr op= LESS expr #BinaryBoolExpr //
+    | expr op= AND expr #BinaryBoolExpr
     | value=INTEGER #IntegerExpr
     | value=BOOLEAN #BooleanExpr
     | name=ID #IDExpr

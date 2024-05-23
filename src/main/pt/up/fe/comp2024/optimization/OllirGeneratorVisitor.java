@@ -106,6 +106,11 @@ public class OllirGeneratorVisitor extends AJmmVisitor<Void, String> {
                         code.append(OptUtils.toOllirType(local.getType()));
                     }
                 }
+                for(var param : table.getParameters(node.getJmmParent().getJmmParent().get("name"))){
+                    if(param.getName().equals(varName.get("name"))){
+                        code.append(OptUtils.toOllirType(param.getType()));
+                    }
+                }
             }
             code.append(").");
             code.append("V");
@@ -181,7 +186,7 @@ public class OllirGeneratorVisitor extends AJmmVisitor<Void, String> {
                     code.append(END_STMT);
                 }
 
-                if (node.getChild(0).getKind().equals("BinaryExpr") || node.getChild(0).getKind().equals("GetMethod")) {
+                if (node.getChild(0).getKind().equals("BinaryExpr") || node.getChild(0).getKind().equals("GetMethod") || node.getChild(0).getKind().equals("BinaryBoolExpr")) {
                     var expr = exprVisitor.visit(node.getChild(0));
                     code.append(expr.getComputation());
                     code.append(local.getName());
@@ -320,7 +325,7 @@ public class OllirGeneratorVisitor extends AJmmVisitor<Void, String> {
         }
         var returnStmt = node.getChildren(RETURN_STMT);
         if (!returnStmt.isEmpty()) {
-            if (returnStmt.get(0).getChild(0).getKind().equals("BinaryExpr")) {
+            if (returnStmt.get(0).getChild(0).getKind().equals("BinaryExpr") || returnStmt.get(0).getChild(0).getKind().equals("BooleanExpr")) {
                 code.append(visit(returnStmt.get(0)));
             }
             else {
