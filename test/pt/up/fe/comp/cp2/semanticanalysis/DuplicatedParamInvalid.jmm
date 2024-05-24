@@ -1,0 +1,7 @@
+class DuplicatedParamField {
+
+    public int foo(int a, int a) {
+        return 0;
+    }
+
+}

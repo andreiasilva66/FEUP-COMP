@@ -1,0 +1,11 @@
+class ArrayIndexInvalid {
+
+    public int foo() {
+        int[] arr;
+        boolean b;
+        arr = new int[5];
+        b = true;
+        arr[6] = 10;
+        return 0;
+    }
+}

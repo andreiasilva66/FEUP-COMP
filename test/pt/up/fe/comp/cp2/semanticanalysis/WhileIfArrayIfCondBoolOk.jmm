@@ -1,0 +1,18 @@
+class WhileIfArrayIfCondBoolOk {
+
+    public int foo() {
+
+        int a;
+        boolean b;
+        b = true;
+        a = 2;
+
+        while (b) {
+            a = 2;
+        }
+
+        return a;
+
+    }
+
+}

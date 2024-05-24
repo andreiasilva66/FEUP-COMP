@@ -20,7 +20,6 @@ DIV : '/' ;
 ADD : '+' ;
 SUB : '-' ;
 
-LENGTH : 'length' ;
 THIS : 'this' ;
 NEW : 'new' ;
 
@@ -31,7 +30,6 @@ INT : 'int' ;
 BOOL : 'boolean' ;
 STRING : 'String' ;
 VOID : 'void' ;
-MAIN : 'main' ;
 IF : 'if' ;
 ELSE : 'else' ;
 WHILE : 'while' ;
@@ -67,7 +65,7 @@ classDecl
 
 varDecl
     : type name=ID SEMI
-    | type name=MAIN SEMI
+    | type name='length' SEMI
     | type name=ID LRECT RRECT SEMI
     ;
 
@@ -81,6 +79,7 @@ returnStmt
 
 param
     : type name=ID
+    | type name='length'
     ;
 
 methodDecl locals[boolean isPublic=false, boolean isStatic=false]
@@ -89,14 +88,14 @@ methodDecl locals[boolean isPublic=false, boolean isStatic=false]
         LPAREN ( param (COMMA param)* )? RPAREN
         LCURLY ( varDecl )* ( stmt )* returnStmt RCURLY
     | (PUBLIC {$isPublic=true;})?
-        'static' {$isStatic=true;} returnType name=MAIN LPAREN param RPAREN
+        'static' {$isStatic=true;} returnType name=ID LPAREN param RPAREN
         LCURLY ( varDecl )* ( stmt )* RCURLY
     ;
 
-type locals[boolean isArray=false] //, boolean isVarargs=false]
+type locals[boolean isArray=false, boolean isVarargs=false]
     : (value=INT'['']' {$isArray=true;})
     | (value=STRING'['']' {$isArray=true;})
-    | (value=INT'...' {$isArray=true;})//{$isVarargs=true;}
+    | value=INT'...' {$isVarargs=true;}
     | value=BOOL
     | value=INT
     | value=STRING
@@ -110,6 +109,7 @@ stmt
     | WHILE LPAREN expr RPAREN stmt #WhileStmt
     | expr SEMI #SemiColonStmt
     | name=ID EQUALS value=expr SEMI #IDAssignStmt
+    | name='length' EQUALS value=expr SEMI #IDAssignStmt
     | name=ID LRECT expr RRECT EQUALS expr SEMI #IDCurlyAssignStmt
     ;
 
@@ -119,7 +119,7 @@ expr
     | NOT expr #NotExpr
     | NEW INT LRECT expr RRECT #NewInt //
     | NEW value=ID LPAREN RPAREN #NewID
-    | expr DOT LENGTH #GetLength
+    | expr DOT 'length' #GetLength
     | expr DOT value=ID LPAREN ( expr ( COMMA expr )* )? RPAREN #GetMethod
     | expr op= (MUL | DIV) expr #BinaryExpr //
     | expr op= (ADD | SUB) expr #BinaryExpr //
@@ -128,9 +128,9 @@ expr
     | value=INTEGER #IntegerExpr
     | value=BOOLEAN #BooleanExpr
     | name=ID #IDExpr
+    | name='length' #IDExpr
     | name=THIS #ThisExpr
     | LRECT (expr ( COMMA expr)* )? RRECT #List
     ;
-
 
 

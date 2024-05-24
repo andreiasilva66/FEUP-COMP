@@ -20,22 +20,152 @@ public class TypeCheck extends AnalysisVisitor {
     private String currentMethod;
 
     public void buildVisitor() {
+        addVisit(Kind.CLASS_DECL, this::classDecl);
         addVisit(Kind.BINARY_EXPR, this::binTypes);
         addVisit(Kind.METHOD_DECL, this::listTypes);
-        addVisit(Kind.GET_METHOD, this::undefMethod);
+        addVisit(Kind.GET_METHOD, this::getMethod);
         addVisit(Kind.ARRAY_EXPR, this::arrayExpr);
         addVisit(Kind.BINARY_EXPR, this::binExpr);
         addVisit(Kind.RETURN_STMT, this::returnStmt);
         addVisit(Kind.IF_ELSE_STMT, this::ifElseStmt);
         addVisit(Kind.VAR_DECL, this::varDecl);
         addVisit(Kind.BINARY_BOOL_EXPR, this::binBoolExpr);
-        addVisit(Kind.CLASS_DECL, this::classDecl);
+        addVisit(Kind.I_D_ASSIGN_STMT, this::assignStmt);
+        addVisit(Kind.WHILE_STMT, this::whileStmt);
+        addVisit(Kind.I_D_CURLY_ASSIGN_STMT, this::curlyAssignStmt);
     }
 
-    private Void classDecl(JmmNode node, SymbolTable table){
-        var fields = node.getChildren(Kind.VAR_DECL);
-        for(var field : fields){
-            if(field.getChild(0).get("isVarargs").equals("true")){
+
+    private Void curlyAssignStmt(JmmNode node, SymbolTable table) {
+        var locals = table.getLocalVariables(currentMethod);
+        var idExprs = node.getChildren(I_D_EXPR);
+        var name = node.get("name");
+        var parent = node.getParent();
+        var idAssignStmts = parent.getChildren(Kind.I_D_ASSIGN_STMT);
+        for (var idAssignStmt : idAssignStmts) {
+            if (!idAssignStmt.getChildren(Kind.NEW_INT).isEmpty()) {
+                var newInt = idAssignStmt.getChild(0);
+                var newIntChild = newInt.getChild(0);
+                var value = newIntChild.get("value");
+                if (node.getChildren().size() == 2) {
+                    var left = node.getChild(0);
+                    var right = node.getChild(1);
+                    var leftKind = left.getKind();
+                    var rightKind = right.getKind();
+                    if (leftKind.equals(rightKind) && leftKind.equals("IntegerExpr")) {
+                        if (left.get("value").compareTo(value) > 0) {
+                            addReport(Report.newError(
+                                    Stage.SEMANTIC,
+                                    NodeUtils.getLine(node),
+                                    NodeUtils.getColumn(node),
+                                    "Array out of bounds: " + left.get("value") + " and " + value,
+                                    null
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        for (var idExpr : idExprs) {
+            for (var local : locals) {
+                if (Objects.equals(local.getName(), name)) {
+                    if (Objects.equals(local.getType().isArray(), true)) {
+                        for (var localTmp : locals) {
+                            if (idExpr.hasAttribute("name")) {
+                                if (Objects.equals(localTmp.getName(), idExpr.get("name"))) {
+                                    if (!Objects.equals(localTmp.getType().getName(), "int")) {
+                                        addReport(Report.newError(
+                                                Stage.SEMANTIC,
+                                                NodeUtils.getLine(node),
+                                                NodeUtils.getColumn(node),
+                                                "Can't access array with non int: " + idExpr.get("name"),
+                                                null
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private Void whileStmt(JmmNode node, SymbolTable table) {
+        var locals = table.getLocalVariables(currentMethod);
+        var idExprs = node.getChildren(I_D_EXPR);
+        var containsLocal = false;
+        for (var local : locals) {
+            for (var idExpr : idExprs) {
+                if (Objects.equals(local.getName(), idExpr.get("name"))) {
+                    containsLocal = true;
+                }
+            }
+            var value = local.getType().getName();
+            if (!value.equals("boolean") && containsLocal) {
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Can't do a while statement with non boolean: " + value,
+                        null
+                ));
+
+            }
+        }
+        return null;
+    }
+
+    private Void classDecl(JmmNode node, SymbolTable table) {
+        var imports = table.getImports();
+        // check for duplicated imports
+        for (int i = 0; i < imports.size(); i++) {
+            for (int j = i + 1; j < imports.size(); j++) {
+                if (Objects.equals(imports.get(i), imports.get(j))) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Duplicated imports: " + imports.get(i) + " and " + imports.get(j),
+                            null
+                    ));
+                }
+            }
+        }
+        var fields = table.getFields();
+        // check for duplicated fields
+        for (int i = 0; i < fields.size(); i++) {
+            for (int j = i + 1; j < fields.size(); j++) {
+                if (Objects.equals(fields.get(i), fields.get(j))) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Duplicated fields: " + fields.get(i) + " and " + fields.get(j),
+                            null
+                    ));
+                }
+            }
+        }
+        var methods = table.getMethods();
+        // check for duplicated methods
+        for (int i = 0; i < methods.size(); i++) {
+            for (int j = i + 1; j < methods.size(); j++) {
+                if (Objects.equals(methods.get(i), methods.get(j))) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Duplicated methods: " + methods.get(i) + " and " + methods.get(j),
+                            null
+                    ));
+                }
+            }
+        }
+        var fields2 = node.getChildren(Kind.VAR_DECL);
+        for(var field : fields2) {
+            if (field.getChild(0).get("isVarargs").equals("true")) {
                 addReport(Report.newError(
                         Stage.SEMANTIC,
                         NodeUtils.getLine(node),
@@ -48,6 +178,28 @@ public class TypeCheck extends AnalysisVisitor {
         return null;
     }
 
+    private Void assignStmt(JmmNode node, SymbolTable table) {
+        var name = node.get("name");
+        var method = node.getParent();
+        var varDecls = method.getParent().getChildren(Kind.VAR_DECL);
+        if (method.getKind().equals("MethodDecl")) {
+            var checkStatic = method.get("isStatic");
+            for (var varDecl : varDecls) {
+                var varName = varDecl.get("name");
+                if (Objects.equals(varName, name) && Objects.equals(checkStatic, "true")) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Can't access a non static field from a static method: " + name,
+                            null
+                    ));
+                }
+            }
+        }
+        return null;
+    }
+
     private Void binBoolExpr(JmmNode node, SymbolTable table){
         var left = node.getChild(0);
         var right = node.getChild(1);
@@ -55,9 +207,17 @@ public class TypeCheck extends AnalysisVisitor {
         var rightKind = right.getKind();
         if(leftKind.equals("BooleanExpr") || rightKind.equals("BooleanExpr")){
             return null;
-        } else if (leftKind.equals("IDExpr")){
+        } else {
+            checkBinBoolExpr(node, table, left, leftKind);
+        }
+        checkBinBoolExpr(node, table, right, rightKind);
+        return null;
+    }
+
+    private void checkBinBoolExpr(JmmNode node, SymbolTable table, JmmNode left, String leftKind) {
+        if (leftKind.equals("IDExpr")){
             String leftType = "";
-            Boolean isLeftArray = false;
+            boolean isLeftArray = false;
             for(var local : table.getLocalVariables(currentMethod)){
                 if(Objects.equals(local.getName(), left.get("name"))){
                     leftType = local.getType().getName();
@@ -95,7 +255,7 @@ public class TypeCheck extends AnalysisVisitor {
         }
         else if(leftKind.equals("GetMethod")){
             var leftType = table.getReturnType(left.get("value")).getName();
-            Boolean isLeftArray = table.getReturnType(left.get("value")).isArray();
+            boolean isLeftArray = table.getReturnType(left.get("value")).isArray();
             if(!leftType.equals("boolean") || isLeftArray){
                 addReport(Report.newError(
                         Stage.SEMANTIC,
@@ -107,58 +267,6 @@ public class TypeCheck extends AnalysisVisitor {
             }
 
         }
-        if (rightKind.equals("IDExpr")){
-            String rightType = "";
-            Boolean isRightArray = false;
-            for(var local : table.getLocalVariables(currentMethod)){
-                if(Objects.equals(local.getName(), right.get("name"))){
-                    rightType = local.getType().getName();
-                    isRightArray = local.getType().isArray();
-                    break;
-                }
-            }
-            if(rightType.isEmpty()) {
-                for (var param : table.getParameters(currentMethod)) {
-                    if (Objects.equals(param.getName(), right.get("name"))) {
-                        rightType = param.getType().getName();
-                        isRightArray = param.getType().isArray();
-                        break;
-                    }
-                }
-                if(rightType.isEmpty()){
-                    addReport(Report.newError(
-                            Stage.SEMANTIC,
-                            NodeUtils.getLine(node),
-                            NodeUtils.getColumn(node),
-                            "Variable not defined: " + right.get("name"),
-                            null
-                    ));
-                }
-            }
-            if(!rightType.equals("boolean") || isRightArray){
-                addReport(Report.newError(
-                        Stage.SEMANTIC,
-                        NodeUtils.getLine(node),
-                        NodeUtils.getColumn(node),
-                        "Incompatible types: " + rightType + " and " + "boolean",
-                        null
-                ));
-            }
-        }
-        else if(rightKind.equals("GetMethod")){
-            var rightType = table.getReturnType(right.get("value")).getName();
-            Boolean isRightArray = table.getReturnType(right.get("value")).isArray();
-            if(!rightType.equals("boolean") || isRightArray){
-                addReport(Report.newError(
-                        Stage.SEMANTIC,
-                        NodeUtils.getLine(node),
-                        NodeUtils.getColumn(node),
-                        "Incompatible types: " + rightType + " and " + "boolean",
-                        null
-                ));
-            }
-        }
-        return null;
     }
 
     private Void varDecl(JmmNode node, SymbolTable table) {
@@ -287,16 +395,40 @@ public class TypeCheck extends AnalysisVisitor {
 
     private Void ifElseStmt(JmmNode node, SymbolTable table){
         var condition = node.getChild(0);
+        var locals = table.getLocalVariables(currentMethod);
+        var binaryExprs = node.getChildren(Kind.BINARY_EXPR);
+        for (var binaryExpr : binaryExprs) {
+            var left = binaryExpr.getChild(0);
+            var right = binaryExpr.getChild(1);
+            var leftKind = left.getKind();
+            var rightKind = right.getKind();
+            if (leftKind.equals(rightKind) && leftKind.equals("IntegerExpr")) {
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Can't do an if statement with int! ",
+                        null
+                ));
+            }
+        }
         if(condition.getKind().equals("BooleanExpr")){
             return null;
         }
-        addReport(Report.newError(
-                Stage.SEMANTIC,
-                NodeUtils.getLine(node),
-                NodeUtils.getColumn(node),
-                "Incompatible types: " + condition.getKind() + " and " + "boolean",
-                null
-        ));
+        for (var local : locals) {
+            if (condition.get("name").equals(local.getName())) {
+                if (Objects.equals(local.getType().isArray(), true)) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Can't do an if statement with array! ",
+                            null
+                    ));
+                }
+                return null;
+            }
+        }
         return null;
     }
 
@@ -362,7 +494,7 @@ public class TypeCheck extends AnalysisVisitor {
                 ));
             }
         }
-        if(returnExpr.getKind().equals("BinaryExpr") && returnType.getName().equals("int") && returnType.isArray() == false){
+        if(returnExpr.getKind().equals("BinaryExpr") && returnType.getName().equals("int") && !returnType.isArray()){
             return null;
         }
         addReport(Report.newError(
@@ -401,65 +533,13 @@ public class TypeCheck extends AnalysisVisitor {
         var right = node.getChild(1);
         var leftKind = left.getKind();
         var rightKind = right.getKind();
-        if(leftKind.equals("IntegerExpr") || rightKind.equals("IntegerExpr")){
-            return null;
-        } else if (leftKind.equals("IDExpr")){
-            String leftType = "";
-            boolean isLeftArray = false;
-            for(var local : table.getLocalVariables(currentMethod)){
-                if(Objects.equals(local.getName(), left.get("name"))){
-                    leftType = local.getType().getName();
-                    isLeftArray = local.getType().isArray();
-                    break;
-                }
-            }
-            if(leftType.isEmpty()) {
-                for (var param : table.getParameters(currentMethod)) {
-                    if (Objects.equals(param.getName(), left.get("name"))) {
-                        leftType = param.getType().getName();
-                        isLeftArray = param.getType().isArray();
-                        break;
-                    }
-                }
-                if(leftType.isEmpty()){
-                    addReport(Report.newError(
-                            Stage.SEMANTIC,
-                            NodeUtils.getLine(node),
-                            NodeUtils.getColumn(node),
-                            "Variable not defined: " + left.get("name"),
-                            null
-                    ));
-                }
-            }
-            if (rightKind.equals("IDExpr")){
-                String rightType = "";
-                boolean isRightArray = false;
-                for(var local : table.getLocalVariables(currentMethod)){
-                    if(Objects.equals(local.getName(), right.get("name"))){
-                        rightType = local.getType().getName();
-                        isRightArray = local.getType().isArray();
-                    }
-                }
-                if(rightType.isEmpty()) {
-                    for (var param : table.getParameters(currentMethod)) {
-                        if (Objects.equals(param.getName(), right.get("name"))) {
-                            rightType = param.getType().getName();
-                            isRightArray = param.getType().isArray();
-                        }
-                    }
-                    if(rightType.isEmpty()){
-                        addReport(Report.newError(
-                                Stage.SEMANTIC,
-                                NodeUtils.getLine(node),
-                                NodeUtils.getColumn(node),
-                                "Variable not defined: " + right.get("name"),
-                                null
-                        ));
-                    }
-                }
-                if(Objects.equals(leftType, rightType) && isLeftArray == isRightArray){
-                    return null;
-                }
+        var locals = table.getLocalVariables(currentMethod);
+        if (!locals.isEmpty() && locals.size() >= 2) {
+            var leftType = locals.get(0).getType().getName();
+            var rightType = locals.get(1).getType().getName();
+            var leftArray = locals.get(0).getType().isArray();
+            var rightArray = locals.get(1).getType().isArray();
+            if (!leftType.equals(rightType)) {
                 addReport(Report.newError(
                         Stage.SEMANTIC,
                         NodeUtils.getLine(node),
@@ -468,20 +548,42 @@ public class TypeCheck extends AnalysisVisitor {
                         null
                 ));
             }
-            else {
-                if (checkOperandTypes(node, table, right, rightKind, leftType)) return null;
+            else if (leftArray != rightArray) {
+                String arrayType = leftArray ? leftType : "array";
+                String nonArrayType = leftArray ? "array" : leftType;
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Incompatible types: " + arrayType + " and " + nonArrayType,
+                        null
+                ));
             }
         }
-        else {
-            addReport(Report.newError(
-                    Stage.SEMANTIC,
-                    NodeUtils.getLine(node),
-                    NodeUtils.getColumn(node),
-                    "Incompatible types: " + leftKind + " and " + rightKind,
-                    null
-            ));
+        for (var local : locals) {
+            if ((leftKind.equals("IntegerExpr") || rightKind.equals("IntegerExpr"))) {
+                checkBinExprIdExpr(node, left, leftKind, local);
+                checkBinExprIdExpr(node, right, rightKind, local);
+            }
         }
         return null;
+    }
+
+    private void checkBinExprIdExpr(JmmNode node, JmmNode left, String leftKind, Symbol local) {
+        if (leftKind.equals("IDExpr")) {
+            if (left.get("name").equals(local.getName())) {
+                if (!Objects.equals(local.getType().getName(), "int")) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Incompatible types: " + "int" + " and " + local.getType().getName(),
+                            null
+                    ));
+                }
+
+            }
+        }
     }
 
     private boolean checkOperandTypes(JmmNode node, SymbolTable table, JmmNode right, String rightKind, String leftType) {
@@ -504,11 +606,12 @@ public class TypeCheck extends AnalysisVisitor {
     private Void arrayExpr(JmmNode node, SymbolTable table) {
         var locals = table.getLocalVariables(currentMethod);
         var parent = node.getParent();
+        var left = node.getChild(0);
         var varDecls = parent.getParent().getChildren(Kind.VAR_DECL);
         for (var varDecl : varDecls) {
             var checkArray = varDecl.getChild(0).get("isArray");
             System.out.println(checkArray);
-            if (Objects.equals(checkArray, "false")) {
+            if (Objects.equals(checkArray, "false") && Objects.equals(left.get("name"), varDecl.get("name"))) {
                 addReport(Report.newError(
                         Stage.SEMANTIC,
                         NodeUtils.getLine(node),
@@ -660,10 +763,10 @@ public class TypeCheck extends AnalysisVisitor {
                 }
             }
         }
-        var params = node.getChildren(Kind.PARAM);
+        var params2 = node.getChildren(Kind.PARAM);
         // Vargars can only be the last parameter
         boolean varargs = false;
-        for (var param : params) {
+        for (var param : params2) {
             if (varargs) {
                 addReport(Report.newError(
                         Stage.SEMANTIC,
@@ -677,10 +780,42 @@ public class TypeCheck extends AnalysisVisitor {
                 varargs = true;
             }
         }
+
+        var params = table.getParameters(currentMethod);
+        // check for duplicated parameters
+        for (int i = 0; i < params.size(); i++) {
+            for (int j = i + 1; j < params.size(); j++) {
+                if (Objects.equals(params.get(i).getName(), params.get(j).getName())) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Duplicated parameters: " + params.get(i).getName() + " and " + params.get(j).getName(),
+                            null
+                    ));
+                }
+            }
+        }
+        var locals = table.getLocalVariables(currentMethod);
+        // check for duplicated local variables
+        for (int i = 0; i < locals.size(); i++) {
+            for (int j = i + 1; j < locals.size(); j++) {
+                if (Objects.equals(locals.get(i).getName(), locals.get(j).getName())) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Duplicated local variables: " + locals.get(i).getName() + " and " + locals.get(j).getName(),
+                            null
+                    ));
+                }
+            }
+        }
+
         return null;
     }
 
-    public Void undefMethod(JmmNode node, SymbolTable table) {
+    public Void getMethod(JmmNode node, SymbolTable table) {
         var methodName = node.get("value");
         var methods = table.getMethods();
         var varNames = node.getChildren(I_D_EXPR);
@@ -714,6 +849,32 @@ public class TypeCheck extends AnalysisVisitor {
                 ));
             }
         }
+
+        var locals = table.getLocalVariables(currentMethod);
+        if (methods.contains(methodName)) {
+            var methodParams = table.getParameters(methodName);
+            var args = node.getChildren(I_D_EXPR);
+            for (Symbol param : methodParams) {
+                var paramType = param.getType().getName();
+                if (!args.isEmpty()) {
+                    var arg = args.get(args.size() - 1);
+                    for (Symbol local : locals) {
+                        if (Objects.equals(local.getName(), arg.get("name"))) {
+                            if (!Objects.equals(local.getType().getName(), paramType)) {
+                                addReport(Report.newError(
+                                        Stage.SEMANTIC,
+                                        NodeUtils.getLine(node),
+                                        NodeUtils.getColumn(node),
+                                        "Incompatible types: " + local.getType().getName() + " and " + paramType,
+                                        null
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         return null;
     }
 }

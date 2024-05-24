@@ -1,0 +1,15 @@
+class FieldAccessInvalid {
+
+    int field;
+
+    public int foo() {
+
+        FieldAccessInvalid f;
+
+        f = new FieldAccessInvalid();
+
+        return f.field2;
+
+    }
+
+}

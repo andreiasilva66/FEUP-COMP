@@ -29,10 +29,12 @@ public enum Kind {
     NEW_I_D,
     THIS_EXPR,
     IF_ELSE_STMT,
-    BINARY_BOOL_EXPR;
+    BINARY_BOOL_EXPR,
+    I_D_CURLY_ASSIGN_STMT,
+    NEW_INT;
 
 
-    private static final Set<Kind> STATEMENTS = Set.of(I_D_ASSIGN_STMT, RETURN_STMT);
+    private static final Set<Kind> STATEMENTS = Set.of(I_D_ASSIGN_STMT, RETURN_STMT, I_D_CURLY_ASSIGN_STMT);
     private static final Set<Kind> EXPRESSIONS = Set.of(BINARY_EXPR, INTEGER_LITERAL, I_D_EXPR);
 
     private final String name;
