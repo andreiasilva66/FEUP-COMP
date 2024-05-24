@@ -119,11 +119,13 @@ public class JasminGenerator {
         String construct = "";
 
         for (var method : ollirResult.getOllirClass().getMethods()) {
-            methods.append(generators.apply(method));
+            if(method.isConstructMethod()) construct = generators.apply(method);
+            else methods.append(generators.apply(method));
         }
-        code.append(methods);
+        code.append(construct).append(methods);
         return code.toString();
     }
+
 
 
     private String generateMethod(Method method) {
