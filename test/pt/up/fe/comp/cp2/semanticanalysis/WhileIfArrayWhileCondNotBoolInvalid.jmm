@@ -1,0 +1,22 @@
+class WhileIfArrayWhileCondNotBoolInvalid {
+
+    public int foo() {
+        int i;
+        int a;
+        int[] arr;
+        arr = new int[5];
+        i = 0;
+        if (arr) {
+            a = 5;
+        } else {
+            a = 6;
+        }
+
+        while (i) {
+            a = 5;
+        }
+
+        return a;
+    }
+
+}

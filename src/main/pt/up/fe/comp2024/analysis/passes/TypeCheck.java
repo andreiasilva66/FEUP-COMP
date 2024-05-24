@@ -31,6 +31,59 @@ public class TypeCheck extends AnalysisVisitor {
         addVisit(Kind.VAR_DECL, this::varDecl);
         addVisit(Kind.BINARY_BOOL_EXPR, this::binBoolExpr);
         addVisit(Kind.I_D_ASSIGN_STMT, this::assignStmt);
+        addVisit(Kind.WHILE_STMT, this::whileStmt);
+        addVisit(Kind.I_D_CURLY_ASSIGN_STMT, this::curlyAssignStmt);
+    }
+
+    private Void curlyAssignStmt(JmmNode node, SymbolTable table) {
+        var locals = table.getLocalVariables(currentMethod);
+        var idExpr = node.getChild(0);
+        var name = node.get("name");
+        for (var local : locals) {
+            if (Objects.equals(local.getName(), name)) {
+                if (Objects.equals(local.getType().isArray(), true)) {
+                    for (var localTmp : locals) {
+                        if (Objects.equals(localTmp.getName(), idExpr.get("name"))) {
+                            if (!Objects.equals(localTmp.getType().getName(), "int")) {
+                                addReport(Report.newError(
+                                        Stage.SEMANTIC,
+                                        NodeUtils.getLine(node),
+                                        NodeUtils.getColumn(node),
+                                        "Can't access array with non int: " + idExpr.get("name"),
+                                        null
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private Void whileStmt(JmmNode node, SymbolTable table) {
+        var locals = table.getLocalVariables(currentMethod);
+        var idExprs = node.getChildren(I_D_EXPR);
+        var containsLocal = false;
+        for (var local : locals) {
+            for (var idExpr : idExprs) {
+                if (Objects.equals(local.getName(), idExpr.get("name"))) {
+                    containsLocal = true;
+                }
+            }
+            var value = local.getType().getName();
+            if (!value.equals("boolean") && containsLocal) {
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Can't do a while statement with non boolean: " + value,
+                        null
+                ));
+
+            }
+        }
+        return null;
     }
 
     private Void classDecl(JmmNode node, SymbolTable table) {
@@ -86,17 +139,19 @@ public class TypeCheck extends AnalysisVisitor {
         var name = node.get("name");
         var method = node.getParent();
         var varDecls = method.getParent().getChildren(Kind.VAR_DECL);
-        var checkStatic = method.get("isStatic");
-        for (var varDecl : varDecls) {
-            var varName = varDecl.get("name");
-            if (Objects.equals(varName, name) && Objects.equals(checkStatic, "true")) {
-                addReport(Report.newError(
-                        Stage.SEMANTIC,
-                        NodeUtils.getLine(node),
-                        NodeUtils.getColumn(node),
-                        "Can't access a non static field from a static method: " + name,
-                        null
-                ));
+        if (method.getKind().equals("MethodDecl")) {
+            var checkStatic = method.get("isStatic");
+            for (var varDecl : varDecls) {
+                var varName = varDecl.get("name");
+                if (Objects.equals(varName, name) && Objects.equals(checkStatic, "true")) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Can't access a non static field from a static method: " + name,
+                            null
+                    ));
+                }
             }
         }
         return null;
@@ -282,16 +337,40 @@ public class TypeCheck extends AnalysisVisitor {
 
     private Void ifElseStmt(JmmNode node, SymbolTable table){
         var condition = node.getChild(0);
+        var locals = table.getLocalVariables(currentMethod);
+        var binaryExprs = node.getChildren(Kind.BINARY_EXPR);
+        for (var binaryExpr : binaryExprs) {
+            var left = binaryExpr.getChild(0);
+            var right = binaryExpr.getChild(1);
+            var leftKind = left.getKind();
+            var rightKind = right.getKind();
+            if (leftKind.equals(rightKind) && leftKind.equals("IntegerExpr")) {
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Can't do an if statement with int! ",
+                        null
+                ));
+            }
+        }
         if(condition.getKind().equals("BooleanExpr")){
             return null;
         }
-        addReport(Report.newError(
-                Stage.SEMANTIC,
-                NodeUtils.getLine(node),
-                NodeUtils.getColumn(node),
-                "Incompatible types: " + condition.getKind() + " and " + "boolean",
-                null
-        ));
+        for (var local : locals) {
+            if (condition.get("name").equals(local.getName())) {
+                if (Objects.equals(local.getType().isArray(), true)) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Can't do an if statement with array! ",
+                            null
+                    ));
+                }
+                return null;
+            }
+        }
         return null;
     }
 
@@ -388,12 +467,6 @@ public class TypeCheck extends AnalysisVisitor {
         var leftKind = left.getKind();
         var rightKind = right.getKind();
         var locals = table.getLocalVariables(currentMethod);
-        var params = table.getParameters(currentMethod);
-        checkBinExprTypes(node, leftKind, rightKind, locals);
-        return null;
-    }
-
-    private void checkBinExprTypes(JmmNode node, String leftKind, String rightKind, List<Symbol> locals) {
         if (!locals.isEmpty() && locals.size() >= 2) {
             var leftType = locals.get(0).getType().getName();
             var rightType = locals.get(1).getType().getName();
@@ -421,16 +494,28 @@ public class TypeCheck extends AnalysisVisitor {
             }
         }
         for (var local : locals) {
-            if ((leftKind.equals("IntegerExpr") || rightKind.equals("IntegerExpr")) && (!Objects.equals(local.getType().getName(), "int"))) {
-                addReport(Report.newError(
-                        Stage.SEMANTIC,
-                        NodeUtils.getLine(node),
-                        NodeUtils.getColumn(node),
-                        "Incompatible types: " + "int" + " and " + local.getType().getName(),
-                        null
-                ));
+            if ((leftKind.equals("IntegerExpr") || rightKind.equals("IntegerExpr"))) {
+                checkBinExprIdExpr(node, left, leftKind, local);
+                checkBinExprIdExpr(node, right, rightKind, local);
             }
+        }
+        return null;
+    }
 
+    private void checkBinExprIdExpr(JmmNode node, JmmNode left, String leftKind, Symbol local) {
+        if (leftKind.equals("IDExpr")) {
+            if (left.get("name").equals(local.getName())) {
+                if (!Objects.equals(local.getType().getName(), "int")) {
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Incompatible types: " + "int" + " and " + local.getType().getName(),
+                            null
+                    ));
+                }
+
+            }
         }
     }
 

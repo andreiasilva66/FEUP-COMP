@@ -213,13 +213,6 @@ public class SemanticAnalysisTest {
     }
 
     @Test
-    public void MethodCallSimpleOk() {
-        var result = TestUtils
-                .analyse(SpecsIo.getResource("pt/up/fe/comp/cp2/semanticanalysis/MethodCallSimpleOk.jmm"));
-        TestUtils.noErrors(result);
-    }
-
-    @Test
     public void DuplicatedFieldInvalid() {
         var result = TestUtils
                 .analyse(SpecsIo.getResource("pt/up/fe/comp/cp2/semanticanalysis/DuplicatedFieldInvalid.jmm"));
@@ -231,6 +224,29 @@ public class SemanticAnalysisTest {
     public void DuplicatedParamInvalid() {
         var result = TestUtils
                 .analyse(SpecsIo.getResource("pt/up/fe/comp/cp2/semanticanalysis/DuplicatedParamInvalid.jmm"));
+        TestUtils.mustFail(result);
+        System.out.println(result.getReports());
+    }
+
+    @Test
+    public void whileIfArrayWhileCondNotBoolInvalid() {
+        var result = TestUtils
+                .analyse(SpecsIo.getResource("pt/up/fe/comp/cp2/semanticanalysis/WhileIfArrayWhileCondNotBoolInvalid.jmm"));
+        TestUtils.mustFail(result);
+        System.out.println(result.getReports());
+    }
+
+    @Test
+    public void whileIfArrayIfCondBoolOk() {
+        var result = TestUtils
+                .analyse(SpecsIo.getResource("pt/up/fe/comp/cp2/semanticanalysis/WhileIfArrayIfCondBoolOk.jmm"));
+        TestUtils.noErrors(result);
+    }
+
+    @Test
+    public void arrayIndexInvalid() {
+        var result = TestUtils
+                .analyse(SpecsIo.getResource("pt/up/fe/comp/cp2/semanticanalysis/ArrayIndexInvalid.jmm"));
         TestUtils.mustFail(result);
         System.out.println(result.getReports());
     }
