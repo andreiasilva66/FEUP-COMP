@@ -785,6 +785,15 @@ public class TypeCheck extends AnalysisVisitor {
         // check for duplicated local variables
         for (int i = 0; i < locals.size(); i++) {
             for (int j = i + 1; j < locals.size(); j++) {
+                if(locals.get(j).getType().getName().equals("int...")){
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Varargs not allowed in local variables",
+                            null
+                    ));
+                }
                 if (Objects.equals(locals.get(i).getName(), locals.get(j).getName())) {
                     addReport(Report.newError(
                             Stage.SEMANTIC,
