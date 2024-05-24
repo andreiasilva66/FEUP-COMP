@@ -389,7 +389,6 @@ public class TypeCheck extends AnalysisVisitor {
         var rightKind = right.getKind();
         var locals = table.getLocalVariables(currentMethod);
         var params = table.getParameters(currentMethod);
-        checkBinExprTypes(node, leftKind, rightKind, params);
         checkBinExprTypes(node, leftKind, rightKind, locals);
         return null;
     }
