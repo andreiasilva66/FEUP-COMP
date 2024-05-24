@@ -5,7 +5,7 @@ class ArrayIndexInvalid {
         boolean b;
         arr = new int[5];
         b = true;
-        arr[b] = 10;
+        arr[6] = 10;
         return 0;
     }
 }

@@ -37,21 +37,51 @@ public class TypeCheck extends AnalysisVisitor {
 
     private Void curlyAssignStmt(JmmNode node, SymbolTable table) {
         var locals = table.getLocalVariables(currentMethod);
-        var idExpr = node.getChild(0);
+        var idExprs = node.getChildren(I_D_EXPR);
         var name = node.get("name");
-        for (var local : locals) {
-            if (Objects.equals(local.getName(), name)) {
-                if (Objects.equals(local.getType().isArray(), true)) {
-                    for (var localTmp : locals) {
-                        if (Objects.equals(localTmp.getName(), idExpr.get("name"))) {
-                            if (!Objects.equals(localTmp.getType().getName(), "int")) {
-                                addReport(Report.newError(
-                                        Stage.SEMANTIC,
-                                        NodeUtils.getLine(node),
-                                        NodeUtils.getColumn(node),
-                                        "Can't access array with non int: " + idExpr.get("name"),
-                                        null
-                                ));
+        var parent = node.getParent();
+        var idAssignStmts = parent.getChildren(Kind.I_D_ASSIGN_STMT);
+        for (var idAssignStmt : idAssignStmts) {
+            if (!idAssignStmt.getChildren(Kind.NEW_INT).isEmpty()) {
+                var newInt = idAssignStmt.getChild(0);
+                var newIntChild = newInt.getChild(0);
+                var value = newIntChild.get("value");
+                if (node.getChildren().size() == 2) {
+                    var left = node.getChild(0);
+                    var right = node.getChild(1);
+                    var leftKind = left.getKind();
+                    var rightKind = right.getKind();
+                    if (leftKind.equals(rightKind) && leftKind.equals("IntegerExpr")) {
+                        if (left.get("value").compareTo(value) > 0) {
+                            addReport(Report.newError(
+                                    Stage.SEMANTIC,
+                                    NodeUtils.getLine(node),
+                                    NodeUtils.getColumn(node),
+                                    "Array out of bounds: " + left.get("value") + " and " + value,
+                                    null
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        for (var idExpr : idExprs) {
+            for (var local : locals) {
+                if (Objects.equals(local.getName(), name)) {
+                    if (Objects.equals(local.getType().isArray(), true)) {
+                        for (var localTmp : locals) {
+                            if (idExpr.hasAttribute("name")) {
+                                if (Objects.equals(localTmp.getName(), idExpr.get("name"))) {
+                                    if (!Objects.equals(localTmp.getType().getName(), "int")) {
+                                        addReport(Report.newError(
+                                                Stage.SEMANTIC,
+                                                NodeUtils.getLine(node),
+                                                NodeUtils.getColumn(node),
+                                                "Can't access array with non int: " + idExpr.get("name"),
+                                                null
+                                        ));
+                                    }
+                                }
                             }
                         }
                     }
@@ -539,11 +569,12 @@ public class TypeCheck extends AnalysisVisitor {
     private Void arrayExpr(JmmNode node, SymbolTable table) {
         var locals = table.getLocalVariables(currentMethod);
         var parent = node.getParent();
+        var left = node.getChild(0);
         var varDecls = parent.getParent().getChildren(Kind.VAR_DECL);
         for (var varDecl : varDecls) {
             var checkArray = varDecl.getChild(0).get("isArray");
             System.out.println(checkArray);
-            if (Objects.equals(checkArray, "false")) {
+            if (Objects.equals(checkArray, "false") && Objects.equals(left.get("name"), varDecl.get("name"))) {
                 addReport(Report.newError(
                         Stage.SEMANTIC,
                         NodeUtils.getLine(node),

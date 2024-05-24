@@ -1,0 +1,14 @@
+class ArrayIndexOk {
+
+    public int foo() {
+
+        int[] a;
+        int i;
+        a = new int[5];
+        i = a[4];
+
+        return i;
+
+    }
+
+}
