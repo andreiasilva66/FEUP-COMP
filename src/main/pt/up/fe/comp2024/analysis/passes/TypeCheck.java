@@ -375,21 +375,6 @@ public class TypeCheck extends AnalysisVisitor {
                 }
             }
         }
-        var locals = table.getLocalVariables(currentMethod);
-        for (var local : locals) {
-            if (Objects.equals(local.getName(), name)) {
-                if(node.getChild(0).get("isVarargs").equals("true")){
-                    addReport(Report.newError(
-                            Stage.SEMANTIC,
-                            NodeUtils.getLine(node),
-                            NodeUtils.getColumn(node),
-                            "Local variables can't be Vargargs",
-                            null
-                    ));
-                }
-                break;
-            }
-        }
         return null;
     }
 

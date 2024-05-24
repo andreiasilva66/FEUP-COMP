@@ -196,12 +196,12 @@ public class SemanticAnalysisTest {
         System.out.println(result.getReports());
     }
 
-    //@Test
-    //public void test() {
-    //    var result = TestUtils
-    //            .analyse(SpecsIo.getResource("pt/up/fe/comp/cp2/semanticanalysis/input.jmm"));
-    //    TestUtils.noErrors(result);
-    //}
+    @Test
+    public void test() {
+        var result = TestUtils
+                .analyse(SpecsIo.getResource("pt/up/fe/comp/cp2/semanticanalysis/input.jmm"));
+        TestUtils.noErrors(result);
+    }
 
     @Test
     public void FieldAccessInvalid() {
