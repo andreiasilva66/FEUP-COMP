@@ -317,15 +317,18 @@ public class JasminGenerator {
 
     private String generateReturn(ReturnInstruction returnInst) {
         var code = new StringBuilder();
+        ElementType type = returnInst.getReturnType().getTypeOfElement();
 
-        var ret = switch (returnInst.getReturnType().getTypeOfElement()) {
+        var ret = switch (type) {
             case VOID -> "return";
             case INT32 -> "ireturn";
             case BOOLEAN -> "ireturn";
-            default -> throw new NotImplementedException(returnInst.getReturnType().getTypeOfElement());
+            case OBJECTREF -> "areturn";
+            case ARRAYREF -> "areturn";
+            default -> throw new NotImplementedException(type);
         };
 
-        if (!returnInst.getReturnType().getTypeOfElement().equals(ElementType.VOID))
+        if (!type.equals(ElementType.VOID))
             code.append(generators.apply(returnInst.getOperand()));
         code.append(ret).append(NL);
 
