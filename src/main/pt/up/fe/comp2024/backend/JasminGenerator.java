@@ -119,10 +119,9 @@ public class JasminGenerator {
         String construct = "";
 
         for (var method : ollirResult.getOllirClass().getMethods()) {
-            if(method.isConstructMethod()) construct = generators.apply(method);
-            else methods.append(generators.apply(method));
+            methods.append(generators.apply(method));
         }
-        code.append(construct).append(methods);
+        code.append(methods);
         return code.toString();
     }
 
@@ -208,10 +207,9 @@ public class JasminGenerator {
             case OBJECTREF -> {
                 return stringBuilder;
             }
-            case THIS -> {
+            default -> {
                 return stringBuilder;
             }
-            default -> throw new NotImplementedException(type.getTypeOfElement());
         }
 
         return stringBuilder;
@@ -307,7 +305,7 @@ public class JasminGenerator {
             case DIV -> "idiv";
             case AND -> "iand";
             case LTH -> "icmp";
-            default -> throw new NotImplementedException(binaryOp.getOperation().getOpType());
+            default -> "";
         };
 
         code.append(op).append(NL);
@@ -453,10 +451,7 @@ public class JasminGenerator {
     }
 
     private String generateGoto(GotoInstruction gotoInstruction){
-        var code = new StringBuilder();
-        code.append("goto").append(NL);
-
-        return code.toString();
+        return "goto " + gotoInstruction.getLabel() + NL;
     }
 }
 
