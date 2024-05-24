@@ -133,6 +133,7 @@ public class JasminGenerator {
 
         var code = new StringBuilder();
 
+
         // calculate modifier
         var modifier = method.getMethodAccessModifier() != AccessModifier.DEFAULT ?
                 method.getMethodAccessModifier().name().toLowerCase() + " " :
@@ -171,20 +172,25 @@ public class JasminGenerator {
 
             code.append(methodName).append(methodTypes.toString()).append(NL);
             // Add limits
-            code.append(TAB).append(".limit stack 99").append(NL);
-            code.append(TAB).append(".limit locals 99").append(NL);
+
+            var instCode = new StringBuilder();
 
             for (var inst : method.getInstructions()) {
-                //System.out.println("Pre: " + inst);
-                var instCode = StringLines.getLines(generators.apply(inst)).stream()
-                        .collect(Collectors.joining(NL + TAB, TAB, NL));
+                instCode.append(StringLines.getLines(generators.apply(inst)).stream()
+                        .collect(Collectors.joining(NL + TAB, TAB, NL)));
                 if((inst instanceof CallInstruction) && (((CallInstruction) inst).getReturnType().getTypeOfElement() == ElementType.VOID) && ((CallInstruction) inst).getInvocationType().equals(CallType.invokespecial)){
-                    instCode += TAB + "pop\n";
+                    instCode.append(TAB).append("pop").append(NL);
                 }
-                //System.out.println("Post: " + instCode);
-                code.append(instCode);
             }
+            int localCount = method.getVarTable().size();
+            if(!method.isStaticMethod()) localCount++;
 
+            System.out.println("local: " + localCount);
+
+            code.append(TAB).append(".limit stack 99").append(NL);
+            code.append(TAB).append(".limit locals ").append(localCount).append(NL);
+
+            code.append(instCode);
             code.append(".end method\n");
         }
         // unset method
