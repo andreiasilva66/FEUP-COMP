@@ -29,6 +29,23 @@ public class TypeCheck extends AnalysisVisitor {
         addVisit(Kind.IF_ELSE_STMT, this::ifElseStmt);
         addVisit(Kind.VAR_DECL, this::varDecl);
         addVisit(Kind.BINARY_BOOL_EXPR, this::binBoolExpr);
+        addVisit(Kind.CLASS_DECL, this::classDecl);
+    }
+
+    private Void classDecl(JmmNode node, SymbolTable table){
+        var fields = node.getChildren(Kind.VAR_DECL);
+        for(var field : fields){
+            if(field.getChild(0).get("isVarargs").equals("true")){
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Varargs not allowed in fields",
+                        null
+                ));
+            }
+        }
+        return null;
     }
 
     private Void binBoolExpr(JmmNode node, SymbolTable table){
@@ -250,6 +267,21 @@ public class TypeCheck extends AnalysisVisitor {
                 }
             }
         }
+        var locals = table.getLocalVariables(currentMethod);
+        for (var local : locals) {
+            if (Objects.equals(local.getName(), name)) {
+                if(node.getChild(0).get("isVarargs").equals("true")){
+                    addReport(Report.newError(
+                            Stage.SEMANTIC,
+                            NodeUtils.getLine(node),
+                            NodeUtils.getColumn(node),
+                            "Local variables can't be Vargargs",
+                            null
+                    ));
+                }
+                break;
+            }
+        }
         return null;
     }
 
@@ -272,6 +304,15 @@ public class TypeCheck extends AnalysisVisitor {
         var method = node.getParent();
         var returnType = table.getReturnType(method.get("name"));
         var returnExpr = node.getChild(0);
+        if(returnType.getName().equals("int...")){
+            addReport(Report.newError(
+                    Stage.SEMANTIC,
+                    NodeUtils.getLine(node),
+                    NodeUtils.getColumn(node),
+                    "Can't return varargs",
+                    null
+            ));
+        }
         if (returnType.getName().equals("int") && returnExpr.getKind().equals("IntegerExpr")) {
             return null;
         }
@@ -617,6 +658,23 @@ public class TypeCheck extends AnalysisVisitor {
                         ));
                     }
                 }
+            }
+        }
+        var params = node.getChildren(Kind.PARAM);
+        // Vargars can only be the last parameter
+        boolean varargs = false;
+        for (var param : params) {
+            if (varargs) {
+                addReport(Report.newError(
+                        Stage.SEMANTIC,
+                        NodeUtils.getLine(node),
+                        NodeUtils.getColumn(node),
+                        "Varargs must be the last parameter",
+                        null
+                ));
+            }
+            if (param.getChild(0).get("isVarargs").equals("true")) {
+                varargs = true;
             }
         }
         return null;

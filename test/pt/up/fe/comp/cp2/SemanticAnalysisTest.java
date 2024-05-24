@@ -195,4 +195,12 @@ public class SemanticAnalysisTest {
         TestUtils.mustFail(result);
         System.out.println(result.getReports());
     }
+
+
+    //@Test
+    //public void test() {
+    //    var result = TestUtils
+    //            .analyse(SpecsIo.getResource("pt/up/fe/comp/cp2/semanticanalysis/input.jmm"));
+    //    TestUtils.noErrors(result);
+    //}
 }

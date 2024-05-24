@@ -93,10 +93,10 @@ methodDecl locals[boolean isPublic=false, boolean isStatic=false]
         LCURLY ( varDecl )* ( stmt )* RCURLY
     ;
 
-type locals[boolean isArray=false]
+type locals[boolean isArray=false] //, boolean isVarargs=false]
     : (value=INT'['']' {$isArray=true;})
     | (value=STRING'['']' {$isArray=true;})
-    | value=INT'...' {$isArray=true;}
+    | (value=INT'...' {$isArray=true;})//{$isVarargs=true;}
     | value=BOOL
     | value=INT
     | value=STRING

@@ -16,7 +16,7 @@ public class JmmSymbolTableBuilder {
 
     public static JmmSymbolTable build(JmmNode root) {
 
-        //System.out.println(root.toTree());
+        System.out.println(root.toTree());
 
         var classDecl = root.getChildren().get(root.getChildren().size() - 1);
 
@@ -50,7 +50,12 @@ public class JmmSymbolTableBuilder {
         List<Symbol> fields = new ArrayList<>();
         var varDecl = classDecl.getChildren(VAR_DECL);
         for (var field : varDecl) {
-            fields.add(new Symbol(new Type(field.getChild(0).get("value"), Objects.equals(field.getChild(0).get("isArray"),"true")), field.get("name")));
+            if(field.getChild(0).get("isVarargs").equals("true")){
+                fields.add(new Symbol(new Type("int...", true), field.get("name")));
+            }
+            else{
+                fields.add(new Symbol(new Type(field.getChild(0).get("value"), Objects.equals(field.getChild(0).get("isArray"),"true")), field.get("name")));
+            }
         }
 
         return fields;
@@ -63,7 +68,10 @@ public class JmmSymbolTableBuilder {
         var child = classDecl.getChildren(METHOD_DECL);
         for (var method : child) {
                 var type = method.getChild(0);
-                if (type.getChild(0).get("isArray").equals("true")) {
+                if(type.getChild(0).get("isVarargs").equals("true")){
+                    map.put(method.get("name"), new Type("int...", true));
+                }
+                else if (type.getChild(0).get("isArray").equals("true")) {
                     boolean value = true;
                     map.put(method.get("name"), new Type(type.getChild(0).get("value"), value));
                 }
@@ -85,7 +93,12 @@ public class JmmSymbolTableBuilder {
             if (!method.getChildren().isEmpty()) {
                 var methParams = method.getChildren(PARAM);
                 for (var param : methParams) {
-                    params.add(new Symbol(new Type(param.getChild(0).get("value"), Objects.equals(param.getChild(0).get("isArray"),"true")), param.get("name")));
+                    if(param.getChild(0).get("isVarargs").equals("true")){
+                        params.add(new Symbol(new Type("int...", true), param.get("name")));
+                    }
+                    else {
+                        params.add(new Symbol(new Type(param.getChild(0).get("value"), Objects.equals(param.getChild(0).get("isArray"), "true")), param.get("name")));
+                    }
                 }
                 map.put(method.get("name"), params);
             }
@@ -103,7 +116,12 @@ public class JmmSymbolTableBuilder {
             if (!method.getChildren().isEmpty()) {
                 var locals = new ArrayList<Symbol>();
                 for (var local : method.getChildren(Kind.VAR_DECL)) {
-                    locals.add(new Symbol(new Type(local.getChild(0).get("value"), local.getChild(0).get("isArray").equals("true")), local.get("name")));
+                    if(local.getChild(0).get("isVarargs").equals("true")){
+                        locals.add(new Symbol(new Type("int...", true), local.get("name")));
+                    }
+                    else{
+                        locals.add(new Symbol(new Type(local.getChild(0).get("value"), local.getChild(0).get("isArray").equals("true")), local.get("name")));
+                    }
                 }
                 map.put(method.get("name"), locals);
             }
